@@ -1,0 +1,53 @@
+{
+  "name": "indicator-signal-mini-app",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "vite --host",
+    "build": "tsc -b && vite build",
+    "check": "tsc --noEmit",
+    "lint": "eslint .",
+    "preview": "vite preview --host",
+    "supabase:login": "supabase login",
+    "supabase:link": "supabase link",
+    "supabase:start": "supabase start",
+    "supabase:stop": "supabase stop",
+    "supabase:status": "supabase status",
+    "supabase:db:reset": "supabase db reset",
+    "supabase:db:push": "supabase db push",
+    "supabase:functions:serve": "supabase functions serve --env-file supabase/functions/.env",
+    "dev:admin": "npm --workspace @indicator/admin run dev",
+    "build:admin": "npm --workspace @indicator/admin run build",
+    "check:admin": "npm --workspace @indicator/admin run check"
+  },
+  "dependencies": {
+    "@apps-in-toss/web-framework": "^2.4.7",
+    "@supabase/supabase-js": "^2.104.0",
+    "@tanstack/react-query": "^5.99.2",
+    "clsx": "^2.1.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^7.14.2",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.4",
+    "@types/node": "^24.12.2",
+    "@types/react": "^18.3.23",
+    "@types/react-dom": "^18.3.7",
+    "@vitejs/plugin-react": "^6.0.1",
+    "eslint": "^9.39.4",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "globals": "^17.5.0",
+    "supabase": "^2.93.0",
+    "typescript": "~6.0.2",
+    "typescript-eslint": "^8.58.2",
+    "vite": "^8.0.9"
+  }
+}

@@ -1,0 +1,300 @@
+insert into public.providers (
+  code,
+  display_name,
+  provider_kind,
+  auth_state,
+  legal_mode,
+  source_health,
+  freshness_sla_minutes,
+  base_url,
+  config,
+  notes,
+  is_enabled
+)
+values
+  (
+    'pizzint',
+    'PizzINT',
+    'indicator',
+    'valid',
+    'licensed_api',
+    'healthy',
+    90,
+    'https://api.example.com/pizzint',
+    jsonb_build_object('supports', jsonb_build_array('pizza_index', 'gay_bar_index')),
+    'Primary source for Pentagon novelty indicators.',
+    true
+  ),
+  (
+    'cnn',
+    'CNN',
+    'sentiment',
+    'not_required',
+    'public_web',
+    'healthy',
+    120,
+    'https://edition.cnn.com',
+    jsonb_build_object('supports', jsonb_build_array('fear_greed')),
+    'Used for fear-and-greed style market sentiment context.',
+    true
+  ),
+  (
+    'cmc',
+    'CoinMarketCap',
+    'sentiment',
+    'valid',
+    'licensed_api',
+    'healthy',
+    60,
+    'https://pro-api.coinmarketcap.com',
+    jsonb_build_object('supports', jsonb_build_array('fear_greed', 'market_breadth')),
+    'Supplemental numeric market input.',
+    true
+  ),
+  (
+    'x',
+    'X',
+    'social',
+    'valid',
+    'restricted',
+    'degraded',
+    60,
+    'https://api.x.com',
+    jsonb_build_object('supports', jsonb_build_array('sns_rollups')),
+    'Requires explicit legal mode review before expanding scope.',
+    true
+  )
+on conflict (code) do update
+set
+  display_name = excluded.display_name,
+  provider_kind = excluded.provider_kind,
+  auth_state = excluded.auth_state,
+  legal_mode = excluded.legal_mode,
+  source_health = excluded.source_health,
+  freshness_sla_minutes = excluded.freshness_sla_minutes,
+  base_url = excluded.base_url,
+  config = excluded.config,
+  notes = excluded.notes,
+  is_enabled = excluded.is_enabled,
+  updated_at = timezone('utc', now());
+
+insert into public.collection_jobs (
+  slug,
+  display_name,
+  provider_id,
+  job_type,
+  schedule_cron,
+  parser_version,
+  pipeline_version,
+  publish_behavior,
+  timeout_seconds,
+  retry_limit,
+  is_enabled,
+  config
+)
+values
+  (
+    'collect-pizzint-pizza-index',
+    'Collect Pizza Index',
+    (select id from public.providers where code = 'pizzint'),
+    'collect_indicator',
+    '0 * * * *',
+    'pizzint-v1',
+    'pipeline-v1',
+    'review_gated',
+    120,
+    2,
+    true,
+    jsonb_build_object('indicator_key', 'pizza_index', 'tab_slug', 'pentagon')
+  ),
+  (
+    'collect-pizzint-gay-bar-index',
+    'Collect Gay Bar Index',
+    (select id from public.providers where code = 'pizzint'),
+    'collect_indicator',
+    '5 * * * *',
+    'pizzint-v1',
+    'pipeline-v1',
+    'review_gated',
+    120,
+    2,
+    true,
+    jsonb_build_object('indicator_key', 'gay_bar_index', 'tab_slug', 'pentagon')
+  ),
+  (
+    'collect-cnn-fear-greed',
+    'Collect Fear and Greed',
+    (select id from public.providers where code = 'cnn'),
+    'collect_indicator',
+    '10 * * * *',
+    'cnn-fg-v2',
+    'pipeline-v1',
+    'review_gated',
+    120,
+    1,
+    true,
+    jsonb_build_object('indicator_key', 'fear_greed_index', 'tab_slug', 'psychology')
+  ),
+  (
+    'collect-cmc-market-psychology',
+    'Collect Market Psychology Companion',
+    (select id from public.providers where code = 'cmc'),
+    'collect_indicator',
+    '15 * * * *',
+    'cmc-psych-v1',
+    'pipeline-v1',
+    'review_gated',
+    120,
+    1,
+    true,
+    jsonb_build_object('indicator_key', 'market_breadth', 'tab_slug', 'psychology')
+  ),
+  (
+    'collect-x-sns-rollup',
+    'Collect SNS Rollup Candidates',
+    (select id from public.providers where code = 'x'),
+    'collect_social',
+    '20 * * * *',
+    'x-rollup-v1',
+    'pipeline-v1',
+    'review_gated',
+    180,
+    1,
+    true,
+    jsonb_build_object('tab_slug', 'sns_feed')
+  )
+on conflict (slug) do update
+set
+  display_name = excluded.display_name,
+  provider_id = excluded.provider_id,
+  job_type = excluded.job_type,
+  schedule_cron = excluded.schedule_cron,
+  parser_version = excluded.parser_version,
+  pipeline_version = excluded.pipeline_version,
+  publish_behavior = excluded.publish_behavior,
+  timeout_seconds = excluded.timeout_seconds,
+  retry_limit = excluded.retry_limit,
+  is_enabled = excluded.is_enabled,
+  config = excluded.config,
+  updated_at = timezone('utc', now());
+
+insert into public.feed_layout_items (
+  tab_slug,
+  item_key,
+  item_kind,
+  source_ref,
+  title,
+  subtitle,
+  body,
+  order_index,
+  is_visible,
+  config
+)
+values
+  (
+    'home',
+    'home:pentagon-highlight',
+    'indicator_card',
+    'pizza_index',
+    'Pentagon Highlight',
+    'Latest novelty signal',
+    'Curated highlight from the Pentagon tab.',
+    10,
+    true,
+    jsonb_build_object('source_tab', 'pentagon')
+  ),
+  (
+    'home',
+    'home:psychology-highlight',
+    'indicator_card',
+    'fear_greed_index',
+    'Psychology Highlight',
+    'Market mood at a glance',
+    'Latest market emotion indicator.',
+    20,
+    true,
+    jsonb_build_object('source_tab', 'psychology')
+  ),
+  (
+    'home',
+    'home:sns-highlight',
+    'sns_rollup',
+    'sns_feed_rollup',
+    'SNS Highlight',
+    'Approved social rollup',
+    'Editor-approved social summary.',
+    30,
+    true,
+    jsonb_build_object('source_tab', 'sns_feed')
+  ),
+  (
+    'pentagon',
+    'pentagon:pizza-index',
+    'indicator_card',
+    'pizza_index',
+    'Pizza Index',
+    'Crowd signal',
+    'Tracks pizza-price and culture-linked shifts.',
+    10,
+    true,
+    jsonb_build_object('display', jsonb_build_object('format', 'score'))
+  ),
+  (
+    'pentagon',
+    'pentagon:gay-bar-index',
+    'indicator_card',
+    'gay_bar_index',
+    'Gay Bar Index',
+    'Lifestyle signal',
+    'Tracks nightlife-linked indicator movement.',
+    20,
+    true,
+    jsonb_build_object('display', jsonb_build_object('format', 'score'))
+  ),
+  (
+    'psychology',
+    'psychology:fear-greed',
+    'indicator_card',
+    'fear_greed_index',
+    'Fear & Greed',
+    'Sentiment composite',
+    'Fear-and-greed style market emotion index.',
+    10,
+    true,
+    jsonb_build_object('display', jsonb_build_object('format', 'gauge'))
+  ),
+  (
+    'psychology',
+    'psychology:market-breadth',
+    'indicator_card',
+    'market_breadth',
+    'Market Breadth',
+    'Participation signal',
+    'Secondary psychology signal for context.',
+    20,
+    true,
+    jsonb_build_object('display', jsonb_build_object('format', 'delta'))
+  ),
+  (
+    'sns_feed',
+    'sns:top-rollup',
+    'sns_rollup',
+    'sns_feed_rollup',
+    'Top Rollup',
+    'Approved by operations',
+    'Latest approved social rollup for publication.',
+    10,
+    true,
+    jsonb_build_object('review_required', true)
+  )
+on conflict (tab_slug, item_key) do update
+set
+  item_kind = excluded.item_kind,
+  source_ref = excluded.source_ref,
+  title = excluded.title,
+  subtitle = excluded.subtitle,
+  body = excluded.body,
+  order_index = excluded.order_index,
+  is_visible = excluded.is_visible,
+  config = excluded.config,
+  updated_at = timezone('utc', now());

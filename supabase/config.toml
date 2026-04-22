@@ -1,0 +1,37 @@
+project_id = "indicator-feed-platform"
+
+[functions.public-feed-home]
+verify_jwt = false
+
+[functions.public-feed-pentagon]
+verify_jwt = false
+
+[functions.public-feed-psychology]
+verify_jwt = false
+
+[functions.public-feed-sns]
+verify_jwt = false
+
+[functions.feed]
+verify_jwt = false
+
+[functions.pipeline-run]
+verify_jwt = true
+
+[functions.review-decision]
+verify_jwt = true
+
+[functions.publish-current-state]
+verify_jwt = true
+
+[functions.admin-rerun]
+verify_jwt = true
+
+[functions.admin-override-publish]
+verify_jwt = true
+
+[functions.admin-review-action]
+verify_jwt = true
+
+[functions.admin-config-upsert]
+verify_jwt = true
