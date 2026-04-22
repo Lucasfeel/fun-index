@@ -9,3 +9,5 @@ coverage
 apps/admin/dist
 
 .vercel
+supabase/.temp
+supabase/.branches
