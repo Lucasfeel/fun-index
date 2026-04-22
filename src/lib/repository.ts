@@ -21,24 +21,25 @@ function toZeroMetrics(metrics: SignalItem['metrics']) {
 
 function toZeroDrivers(title: string) {
   return [
-    `${title} has not published a public snapshot yet.`,
-    'The card stays visible with zero values so the feed layout remains stable.',
-    'Once data lands in Supabase, the live snapshot will replace this placeholder automatically.',
+    `${title} \uD56D\uBAA9\uC740 \uC544\uC9C1 \uACF5\uAC1C \uC2A4\uB0C5\uC0F7\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.`,
+    '\uB370\uC774\uD130\uAC00 \uC5C6\uC5B4\uB3C4 \uD53C\uB4DC \uB808\uC774\uC544\uC6C3\uC740 \uC548\uC815\uC801\uC73C\uB85C \uC720\uC9C0\uB429\uB2C8\uB2E4.',
+    '\uCD94\uD6C4 Supabase \uB370\uC774\uD130\uAC00 \uB4E4\uC5B4\uC624\uBA74 \uC790\uB3D9\uC73C\uB85C \uC2E4\uC2DC\uAC04 \uAC12\uC73C\uB85C \uBC14\uB01D\uB2C8\uB2E4.',
   ];
 }
 
 function toZeroBaseSignal<T extends SignalItem>(signal: T, updatedAt: string) {
   return {
     ...signal,
-    subtitle: 'Awaiting first public snapshot',
-    summary: 'No published data is available yet, so this card stays pinned to zero until the first approved update arrives.',
+    subtitle: '\uCCAB \uACF5\uAC1C \uC2A4\uB0C5\uC0F7 \uB300\uAE30 \uC911',
+    summary: '\uC544\uC9C1 \uACF5\uAC1C \uB370\uC774\uD130\uAC00 \uC5C6\uC5B4 \uCCAB \uC5C5\uB370\uC774\uD2B8\uAC00 \uB4E4\uC5B4\uC624\uAE30 \uC804\uAE4C\uC9C0 \uB300\uAE30 \uC0C1\uD0DC\uB85C \uD45C\uC2DC\uB429\uB2C8\uB2E4.',
     score: 0,
-    classification: 'No data yet',
+    classification: '\uB300\uAE30 \uC911',
     change: 0,
     updatedAt,
     confidenceBand: 'limited',
-    freshnessNote: 'No public snapshot has been published yet.',
-    uncertaintyNote: 'Zero-value placeholders keep the read-only UI stable until the upstream feed starts publishing.',
+    freshnessNote: '\uC544\uC9C1 \uACF5\uAC1C\uB41C \uC2A4\uB0C5\uC0F7\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.',
+    uncertaintyNote:
+      '\uC0C1\uC704 \uD53C\uB4DC\uC5D0\uC11C \uACF5\uAC1C\uAC00 \uC2DC\uC791\uB420 \uB54C\uAE4C\uC9C0 \uC77D\uAE30 \uC804\uC6A9 UI\uB97C \uC548\uC815\uC801\uC73C\uB85C \uC720\uC9C0\uD558\uB294 \uAC12\uC785\uB2C8\uB2E4.',
     metrics: toZeroMetrics(signal.metrics),
     drivers: toZeroDrivers(signal.title),
   } as T;
@@ -51,15 +52,15 @@ function createEmptySignals() {
     pentagon: demoSignals.pentagon.map((signal) => ({
       ...toZeroBaseSignal(signal, updatedAt),
       sampleSize: 0,
-      coverageLabel: 'No live coverage yet',
+      coverageLabel: '\uC544\uC9C1 \uC2E4\uC2DC\uAC04 \uCEE4\uBC84\uB9AC\uC9C0\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4',
     })),
     psychology: demoSignals.psychology.map((signal) => toZeroBaseSignal(signal, updatedAt)),
     social: demoSignals.social.map((signal) => ({
       ...toZeroBaseSignal(signal, updatedAt),
       sourceCount: 0,
-      sources: ['No sources yet'],
+      sources: ['\uCD9C\uCC98 \uC5C6\uC74C'],
       approvalNote:
-        'No approved social items are published yet. This placeholder remains visible so the feed shell stays readable.',
+        '\uC544\uC9C1 \uC2B9\uC778\uB41C SNS \uD56D\uBAA9\uC774 \uC5C6\uC5B4 \uB300\uAE30 \uC0C1\uD0DC\uB85C \uD45C\uC2DC\uB429\uB2C8\uB2E4.',
     })),
   };
 }

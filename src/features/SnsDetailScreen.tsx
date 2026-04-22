@@ -8,28 +8,28 @@ export function SnsDetailScreen() {
 
   return (
     <PageContainer>
-      <DetailHeader section="SNS Feed detail" title={item?.title ?? 'Social signal detail'} fallbackPath="/sns" />
+      <DetailHeader section="SNS 피드 상세" title={item?.title ?? 'SNS 시그널 상세'} fallbackPath="/sns" />
 
       {detailQuery.isLoading ? (
         <StatePanel
-          title="Loading detail"
-          description="The reviewed social item is being loaded with its freshness and source summary."
+          title="상세 정보를 불러오는 중이에요"
+          description="승인된 SNS 항목과 요약 정보를 준비하고 있어요."
         />
       ) : null}
 
       {!detailQuery.isLoading && detailQuery.isError && !item ? (
         <StatePanel
-          title="Detail unavailable"
-          description="This social signal could not be loaded from the approved public feed."
-          actionLabel="Retry"
+          title="상세 정보를 불러올 수 없어요"
+          description="승인된 공개 피드에서 이 SNS 시그널을 찾지 못했습니다."
+          actionLabel="다시 시도"
           onAction={() => void detailQuery.refetch()}
         />
       ) : null}
 
       {!detailQuery.isLoading && !detailQuery.isError && !item ? (
         <StatePanel
-          title="Social item not found"
-          description="The route does not match a currently published SNS Feed item."
+          title="SNS 항목을 찾을 수 없어요"
+          description="현재 공개된 SNS 피드 항목과 일치하지 않습니다."
         />
       ) : null}
 
@@ -37,38 +37,38 @@ export function SnsDetailScreen() {
         <>
           <DetailHero
             item={item}
-            contextualNote="This item is a reviewed aggregation of social behavior and chatter. It should be read as context about conversation and behavior, not as an instruction or certainty claim."
+            contextualNote="검토된 SNS 대화와 행동 흐름을 집계한 항목입니다. 확정 신호보다는 현재 분위기를 읽는 참고용으로 보세요."
           />
 
           <NoticeStrip
             tone="neutral"
-            title="Approval-gated by design"
+            title="승인 후 노출"
             description={item.approvalNote}
           />
 
           {item.uncertaintyNote ? (
-            <NoticeStrip tone="warning" title="Uncertainty callout" description={item.uncertaintyNote} />
+            <NoticeStrip tone="warning" title="유의 사항" description={item.uncertaintyNote} />
           ) : null}
 
           <Section
-            title="Signal composition"
-            description="A few summary components help explain why the item surfaced without turning the screen into moderation tooling."
+            title="구성 지표"
+            description="핵심 요약만 간단히 보여줍니다."
           />
           <MetricGrid metrics={item.metrics} />
 
-          <DriverList title="Why this item surfaced" items={item.drivers} />
+          <DriverList title="노출 이유" items={item.drivers} />
 
           <DataFacts>
             <div className="facts-panel__row">
-              <span>Reviewed sources</span>
+              <span>검토 출처 수</span>
               <strong>{item.sourceCount}</strong>
             </div>
             <div className="facts-panel__row">
-              <span>Categories</span>
+              <span>카테고리</span>
               <strong>{item.categories.join(', ')}</strong>
             </div>
             <div className="facts-panel__row">
-              <span>Source set</span>
+              <span>출처</span>
               <strong>{item.sources.join(', ')}</strong>
             </div>
           </DataFacts>

@@ -14,7 +14,7 @@ interface TabDefinition {
 const tabs: TabDefinition[] = [
   {
     key: 'home',
-    label: 'Home',
+    label: '홈',
     to: '/',
     icon: (
       <svg aria-hidden="true" viewBox="0 0 24 24">
@@ -24,7 +24,7 @@ const tabs: TabDefinition[] = [
   },
   {
     key: 'pentagon',
-    label: 'Pentagon',
+    label: '펜타곤',
     to: '/pentagon',
     icon: (
       <svg aria-hidden="true" viewBox="0 0 24 24">
@@ -34,7 +34,7 @@ const tabs: TabDefinition[] = [
   },
   {
     key: 'psychology',
-    label: 'Psychology',
+    label: '심리',
     to: '/psychology',
     icon: (
       <svg aria-hidden="true" viewBox="0 0 24 24">
@@ -45,7 +45,7 @@ const tabs: TabDefinition[] = [
   },
   {
     key: 'sns',
-    label: 'SNS Feed',
+    label: 'SNS',
     to: '/sns',
     icon: (
       <svg aria-hidden="true" viewBox="0 0 24 24">
@@ -85,6 +85,8 @@ export function BottomTabBar() {
             <NavLink
               key={tab.key}
               to={tab.to}
+              aria-label={tab.label}
+              title={tab.label}
               className={clsx('tab-bar__item', isActive && 'tab-bar__item--active')}
             >
               <span className="tab-bar__icon">{tab.icon}</span>

@@ -8,9 +8,9 @@ interface PageContainerProps {
 }
 
 interface ScreenHeaderProps {
-  eyebrow: string;
+  eyebrow?: string;
   title: string;
-  description: string;
+  description?: string;
   aside?: ReactNode;
 }
 
@@ -45,9 +45,9 @@ export function ScreenHeader({ eyebrow, title, description, aside }: ScreenHeade
   return (
     <header className="screen-header">
       <div className="screen-header__copy">
-        <span className="screen-header__eyebrow">{eyebrow}</span>
+        {eyebrow ? <span className="screen-header__eyebrow">{eyebrow}</span> : null}
         <h1 className="screen-header__title">{title}</h1>
-        <p className="screen-header__description">{description}</p>
+        {description ? <p className="screen-header__description">{description}</p> : null}
       </div>
       {aside ? <div className="screen-header__aside">{aside}</div> : null}
     </header>
@@ -69,8 +69,8 @@ export function DetailHeader({ section, title, subtitle, fallbackPath }: DetailH
   return (
     <header className="detail-header">
       <button type="button" className="back-button" onClick={handleBack}>
-        <span aria-hidden="true">‹</span>
-        <span>Back</span>
+        <span aria-hidden="true">&larr;</span>
+        <span>뒤로</span>
       </button>
       <div className="detail-header__copy">
         <span className="detail-header__eyebrow">{section}</span>

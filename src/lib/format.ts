@@ -1,7 +1,7 @@
 import type { ConfidenceBand, FeedDomain, FreshnessState, MetricTone, SignalItem } from './types';
 
-const relativeFormatter = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
-const absoluteFormatter = new Intl.DateTimeFormat('en', {
+const relativeFormatter = new Intl.RelativeTimeFormat('ko', { numeric: 'auto' });
+const absoluteFormatter = new Intl.DateTimeFormat('ko-KR', {
   month: 'short',
   day: 'numeric',
   hour: 'numeric',
@@ -16,7 +16,7 @@ export function formatRelativeTime(updatedAt: string) {
   const elapsedMinutes = Math.round((Date.now() - Date.parse(updatedAt)) / 60000);
 
   if (elapsedMinutes < 1) {
-    return 'just now';
+    return '방금 전';
   }
 
   if (elapsedMinutes < 60) {
@@ -86,34 +86,34 @@ export function getMetricToneClass(tone: MetricTone) {
 
 export function getConfidenceLabel(confidenceBand: ConfidenceBand) {
   if (confidenceBand === 'high') {
-    return 'High confidence';
+    return '높음';
   }
 
   if (confidenceBand === 'limited') {
-    return 'Limited confidence';
+    return '낮음';
   }
 
-  return 'Moderate confidence';
+  return '보통';
 }
 
 export function getDomainEyebrow(item: SignalItem) {
   if (item.domain === 'pentagon') {
-    return item.indexType === 'pizza' ? 'Pentagon / Pizza Index' : 'Pentagon / Gay Bar Index';
+    return item.indexType === 'pizza' ? '펜타곤 / 피자 지수' : '펜타곤 / 바 지수';
   }
 
   if (item.domain === 'psychology') {
     if (item.indicatorType === 'fear-greed') {
-      return 'Psychology / Fear & Greed';
+      return '심리 / 공포·탐욕';
     }
 
     if (item.indicatorType === 'positioning-heat') {
-      return 'Psychology / Positioning';
+      return '심리 / 포지셔닝';
     }
 
-    return 'Psychology / Breadth';
+    return '심리 / 시장 폭';
   }
 
-  return 'SNS Feed / Reviewed';
+  return 'SNS 피드 / 검토 완료';
 }
 
 export function getDomainKey(domain: FeedDomain) {

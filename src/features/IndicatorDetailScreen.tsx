@@ -1,5 +1,6 @@
 import { DataFacts, DetailHero, DriverList, MetricGrid, StatePanel } from '../components/Feed';
 import { NoticeStrip, PageContainer, DetailHeader, Section } from '../components/Page';
+import { getConfidenceLabel } from '../lib/format';
 import { usePentagonSignal, usePsychologySignal } from '../lib/queries';
 import type { IndicatorDomain, IndexSignal } from '../lib/types';
 
@@ -9,10 +10,10 @@ interface IndicatorDetailScreenProps {
 
 function getContextualNote(signal: IndexSignal) {
   if (signal.domain === 'pentagon') {
-    return 'This is a rolled-up activity read. It can help frame how busy or restrained the monitored footprint looks, but it should not be taken as a venue map or a directional market call.';
+    return '집계된 활동 흐름을 보여주는 지표입니다. 개별 장소나 방향성 예측보다는 전체 분위기를 읽는 용도로 보세요.';
   }
 
-  return 'This reflects sentiment and positioning conditions at the time of collection. It is best used as context for mood and participation, not as a certainty signal.';
+  return '수집 시점의 심리와 포지셔닝 상태를 보여주는 지표입니다. 확정 신호보다는 현재 분위기를 읽는 참고용으로 보세요.';
 }
 
 export function IndicatorDetailScreen({ domain }: IndicatorDetailScreenProps) {
@@ -22,32 +23,32 @@ export function IndicatorDetailScreen({ domain }: IndicatorDetailScreenProps) {
   return (
     <PageContainer>
       <DetailHeader
-        section={domain === 'pentagon' ? 'Pentagon detail' : 'Psychology detail'}
-        title={item?.title ?? 'Signal detail'}
+        section={domain === 'pentagon' ? '펜타곤 상세' : '심리 상세'}
+        title={item?.title ?? '시그널 상세'}
         subtitle={item?.subtitle}
         fallbackPath={domain === 'pentagon' ? '/pentagon' : '/psychology'}
       />
 
       {detailQuery.isLoading ? (
         <StatePanel
-          title="Loading detail"
-          description="The latest snapshot is being prepared with its freshness and metric breakdown."
+          title="상세 정보를 불러오는 중이에요"
+          description="최신 스냅샷과 지표 구성을 준비하고 있어요."
         />
       ) : null}
 
       {!detailQuery.isLoading && detailQuery.isError && !item ? (
         <StatePanel
-          title="Detail unavailable"
-          description="This signal could not be loaded from the public feed. Try again or return to the main feed."
-          actionLabel="Retry"
+          title="상세 정보를 불러올 수 없어요"
+          description="공개 피드에서 이 시그널을 찾지 못했습니다. 다시 시도하거나 목록으로 돌아가 주세요."
+          actionLabel="다시 시도"
           onAction={() => void detailQuery.refetch()}
         />
       ) : null}
 
       {!detailQuery.isLoading && !detailQuery.isError && !item ? (
         <StatePanel
-          title="Signal not found"
-          description="The requested detail route does not match a currently published signal item."
+          title="시그널을 찾을 수 없어요"
+          description="요청한 경로와 일치하는 공개 시그널이 없습니다."
         />
       ) : null}
 
@@ -58,41 +59,41 @@ export function IndicatorDetailScreen({ domain }: IndicatorDetailScreenProps) {
           {item.uncertaintyNote ? (
             <NoticeStrip
               tone="warning"
-              title="Uncertainty callout"
+              title="유의 사항"
               description={item.uncertaintyNote}
             />
           ) : null}
 
           <Section
-            title="Component read"
-            description="The detail view stays lightweight: a few component snapshots, not a dense dashboard."
+            title="구성 지표"
+            description="핵심 구성만 간단히 보여줍니다."
           />
           <MetricGrid metrics={item.metrics} />
 
-          <DriverList title="What moved the reading" items={item.drivers} />
+          <DriverList title="변화 요인" items={item.drivers} />
 
           <DataFacts>
             <div className="facts-panel__row">
-              <span>Cadence</span>
-              <strong>Roughly hourly</strong>
+              <span>갱신 주기</span>
+              <strong>대체로 1시간</strong>
             </div>
             <div className="facts-panel__row">
-              <span>Freshness note</span>
-              <strong>{item.freshnessNote ?? 'Using the latest published snapshot'}</strong>
+              <span>신선도</span>
+              <strong>{item.freshnessNote ?? '가장 최근 공개 스냅샷 기준'}</strong>
             </div>
             <div className="facts-panel__row">
-              <span>Confidence</span>
-              <strong>{item.confidenceBand}</strong>
+              <span>신뢰도</span>
+              <strong>{getConfidenceLabel(item.confidenceBand)}</strong>
             </div>
             {'coverageLabel' in item ? (
               <div className="facts-panel__row">
-                <span>Coverage</span>
+                <span>커버리지</span>
                 <strong>{item.coverageLabel}</strong>
               </div>
             ) : null}
             {'sampleSize' in item ? (
               <div className="facts-panel__row">
-                <span>Sample size</span>
+                <span>표본 수</span>
                 <strong>{item.sampleSize.toLocaleString()}</strong>
               </div>
             ) : null}

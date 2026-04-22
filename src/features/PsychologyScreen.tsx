@@ -1,8 +1,7 @@
 import { startTransition, useDeferredValue, useState } from 'react';
 import { FeedCard, FeedSkeleton, StatePanel } from '../components/Feed';
-import { NoticeStrip, PageContainer, ScreenHeader, Section } from '../components/Page';
+import { PageContainer, ScreenHeader, Section } from '../components/Page';
 import { SegmentedChips } from '../components/SegmentedChips';
-import { getFreshnessState } from '../lib/format';
 import { usePsychologySignals } from '../lib/queries';
 import type { PsychologyIndicatorType } from '../lib/types';
 
@@ -10,18 +9,18 @@ type FilterValue = 'all' | PsychologyIndicatorType;
 
 function getLabel(value: FilterValue) {
   if (value === 'fear-greed') {
-    return 'Fear & Greed';
+    return '공포·탐욕';
   }
 
   if (value === 'positioning-heat') {
-    return 'Positioning';
+    return '포지셔닝';
   }
 
   if (value === 'breadth-stress') {
-    return 'Breadth';
+    return '시장 폭';
   }
 
-  return 'All';
+  return '전체';
 }
 
 export function PsychologyScreen() {
@@ -32,28 +31,22 @@ export function PsychologyScreen() {
     deferredFilter === 'all'
       ? query.data ?? []
       : (query.data ?? []).filter((item) => item.indicatorType === deferredFilter);
-  const staleCount = items.filter((item) => getFreshnessState(item.updatedAt, item.cadenceHours) === 'stale').length;
 
   return (
     <PageContainer>
-      <ScreenHeader
-        eyebrow="Sentiment and positioning"
-        title="Psychology"
-        description="Fear-and-greed style indicators surface as readable summaries first, with detail views that explain freshness, components, and uncertainty."
-      />
+      <ScreenHeader title="심리" />
 
       <Section
-        title={`Showing ${getLabel(deferredFilter)}`}
-        description="Indicators stay compact: score, classification, change, timestamp, and what the reading should be taken to mean."
+        title={getLabel(deferredFilter)}
         action={
           <div className="filter-control">
             <SegmentedChips
               value={filter}
               options={[
-                { value: 'all', label: 'All' },
-                { value: 'fear-greed', label: 'Fear & Greed' },
-                { value: 'positioning-heat', label: 'Positioning' },
-                { value: 'breadth-stress', label: 'Breadth' },
+                { value: 'all', label: '전체' },
+                { value: 'fear-greed', label: '공포·탐욕' },
+                { value: 'positioning-heat', label: '포지셔닝' },
+                { value: 'breadth-stress', label: '시장 폭' },
               ]}
               onChange={(value) => {
                 startTransition(() => {
@@ -65,30 +58,19 @@ export function PsychologyScreen() {
         }
       />
 
-      {staleCount > 0 ? (
-        <NoticeStrip
-          tone="warning"
-          title="A few psychology inputs are behind cadence."
-          description="Older snapshots are still shown, but they are explicitly marked stale so the feed never implies stronger certainty than the data warrants."
-        />
-      ) : null}
-
       {query.isLoading ? <FeedSkeleton count={3} /> : null}
 
       {!query.isLoading && query.isError && items.length === 0 ? (
         <StatePanel
-          title="Psychology could not load"
-          description="The public indicator feed did not refresh. The UI stays read-only and only consumes anon-safe access."
-          actionLabel="Retry"
+          title="심리 데이터를 불러올 수 없어요"
+          description="최신 지표를 다시 불러와 주세요."
+          actionLabel="다시 시도"
           onAction={() => void query.refetch()}
         />
       ) : null}
 
       {!query.isLoading && !query.isError && items.length === 0 ? (
-        <StatePanel
-          title="No psychology readings yet"
-          description="As soon as structured fear-and-greed style rows land in the public view, they will appear here with the same detail pattern."
-        />
+        <StatePanel title="아직 공개된 심리 지표가 없어요" description="공개된 지표가 여기에 표시됩니다." />
       ) : null}
 
       {items.length > 0 ? (
@@ -98,10 +80,6 @@ export function PsychologyScreen() {
           ))}
         </div>
       ) : null}
-
-      <div className="disclaimer">
-        These indicators reflect observed sentiment and positioning conditions. They do not guarantee direction or timing.
-      </div>
     </PageContainer>
   );
 }
