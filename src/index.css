@@ -270,7 +270,7 @@ a {
 .feed-card__link {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 10px;
   padding: 24px 22px;
 }
 
@@ -316,14 +316,15 @@ a {
 
 .feed-card__gauge-row {
   display: grid;
-  grid-template-columns: 256px minmax(0, 1fr);
-  gap: 12px 20px;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 8px 20px;
   align-items: center;
 }
 
 .signal-gauge {
-  width: 256px;
+  width: 320px;
   max-width: 100%;
+  margin-top: -4px;
 }
 
 .signal-gauge__svg {
@@ -736,12 +737,12 @@ a {
 
   .feed-card__gauge-row {
     grid-template-columns: 1fr;
-    gap: 10px;
+    gap: 6px;
   }
 
   .signal-gauge {
     width: 100%;
-    max-width: 256px;
+    max-width: 320px;
   }
 
   .detail-hero__topline,

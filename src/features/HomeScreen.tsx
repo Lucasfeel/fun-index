@@ -8,7 +8,7 @@ export function HomeScreen() {
 
   return (
     <PageContainer emphasis="hero">
-      <ScreenHeader title="시그널 피드" />
+      <ScreenHeader title="재밌는 보조 지표" />
 
       {query.isLoading ? <FeedSkeleton count={5} /> : null}
 

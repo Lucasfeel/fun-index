@@ -124,18 +124,18 @@ function DeltaPill({ delta }: { delta: number }) {
 function SignalGauge({ item }: { item: SignalItem }) {
   const score = clampScore(item.score);
   const band = getGaugeBand(item);
-  const cx = 128;
+  const cx = 160;
   const cy = 128;
-  const radius = 86;
-  const domeRadius = 42;
+  const radius = 110;
+  const domeRadius = 54;
   const needleAngle = -90 + score * 1.8;
-  const needleEnd = polarToCartesian(cx, cy, 70, needleAngle);
+  const needleEnd = polarToCartesian(cx, cy, 90, needleAngle);
   const segmentGap = 4;
   const segmentSweep = (180 - segmentGap * (gaugeBands.length - 1)) / gaugeBands.length;
 
   return (
     <div className="signal-gauge" aria-hidden="true">
-      <svg viewBox="0 0 256 154" className="signal-gauge__svg">
+      <svg viewBox="0 0 320 182" className="signal-gauge__svg">
         {gaugeBands.map((segment, index) => {
           const startAngle = -90 + index * (segmentSweep + segmentGap);
           const endAngle = startAngle + segmentSweep;
@@ -147,7 +147,7 @@ function SignalGauge({ item }: { item: SignalItem }) {
               d={describeArc(cx, cy, radius, startAngle, endAngle)}
               fill="none"
               stroke={segment.color}
-              strokeWidth="24"
+              strokeWidth="30"
               strokeLinecap="butt"
               strokeOpacity={isActive ? 0.52 : 0.2}
             />
@@ -169,14 +169,14 @@ function SignalGauge({ item }: { item: SignalItem }) {
           x2={needleEnd.x}
           y2={needleEnd.y}
           stroke="#191F28"
-          strokeWidth="4"
+          strokeWidth="4.5"
           strokeLinecap="round"
         />
-        <circle cx={cx} cy={cy} r="7" fill="#FFFFFF" stroke="#191F28" strokeWidth="2" />
+        <circle cx={cx} cy={cy} r="8" fill="#FFFFFF" stroke="#191F28" strokeWidth="2" />
 
         <text
           x={cx}
-          y={cy - domeRadius / 2 + 1}
+          y={cy - domeRadius / 2 + 2}
           textAnchor="middle"
           dominantBaseline="middle"
           className="signal-gauge__score"
