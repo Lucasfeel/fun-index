@@ -1,11 +1,27 @@
 import { parseIndicatorRows, parseSocialRows } from './adapters';
 import { getDemoSignals } from './demoData';
 import { sortByUpdatedAt } from './format';
-import { getSupabaseClient, supabaseViews, useDemoData } from './supabase';
-import type { PentagonSignal, PsychologySignal, SignalItem, SocialSignal } from './types';
+import { applyLocalSignalOverrides } from './localOverrides';
+import { getSupabaseClient, useDemoData } from './supabase';
+import type { ConfidenceBand, PentagonSignal, PsychologySignal, SignalItem, SocialSignal } from './types';
 
 const demoSignals = getDemoSignals();
 const emptySignals = createEmptySignals();
+
+interface PublicFeedCard {
+  itemKey: string;
+  title?: string;
+  subtitle?: string;
+  body?: string;
+  content?: Record<string, unknown>;
+  publishedAt?: string;
+}
+
+interface PublicFeedResponse {
+  tab: string;
+  generatedAt: string;
+  cards: PublicFeedCard[];
+}
 
 function getPlaceholderTimestamp() {
   return new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
@@ -21,25 +37,24 @@ function toZeroMetrics(metrics: SignalItem['metrics']) {
 
 function toZeroDrivers(title: string) {
   return [
-    `${title} \uD56D\uBAA9\uC740 \uC544\uC9C1 \uACF5\uAC1C \uC2A4\uB0C5\uC0F7\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.`,
-    '\uB370\uC774\uD130\uAC00 \uC5C6\uC5B4\uB3C4 \uD53C\uB4DC \uB808\uC774\uC544\uC6C3\uC740 \uC548\uC815\uC801\uC73C\uB85C \uC720\uC9C0\uB429\uB2C8\uB2E4.',
-    '\uCD94\uD6C4 Supabase \uB370\uC774\uD130\uAC00 \uB4E4\uC5B4\uC624\uBA74 \uC790\uB3D9\uC73C\uB85C \uC2E4\uC2DC\uAC04 \uAC12\uC73C\uB85C \uBC14\uB01D\uB2C8\uB2E4.',
+    `${title} 항목은 아직 공개 스냅샷이 없습니다.`,
+    '데이터가 없어도 피드 레이아웃은 안정적으로 유지됩니다.',
+    '추후 Supabase 데이터가 들어오면 자동으로 실시간 값으로 바뀝니다.',
   ];
 }
 
 function toZeroBaseSignal<T extends SignalItem>(signal: T, updatedAt: string) {
   return {
     ...signal,
-    subtitle: '\uCCAB \uACF5\uAC1C \uC2A4\uB0C5\uC0F7 \uB300\uAE30 \uC911',
-    summary: '\uC544\uC9C1 \uACF5\uAC1C \uB370\uC774\uD130\uAC00 \uC5C6\uC5B4 \uCCAB \uC5C5\uB370\uC774\uD2B8\uAC00 \uB4E4\uC5B4\uC624\uAE30 \uC804\uAE4C\uC9C0 \uB300\uAE30 \uC0C1\uD0DC\uB85C \uD45C\uC2DC\uB429\uB2C8\uB2E4.',
+    subtitle: '첫 공개 스냅샷 대기 중',
+    summary: '아직 공개 데이터가 없어 첫 업데이트가 들어오기 전까지 대기 상태로 표시됩니다.',
     score: 0,
-    classification: '\uB300\uAE30 \uC911',
+    classification: '대기 중',
     change: 0,
     updatedAt,
     confidenceBand: 'limited',
-    freshnessNote: '\uC544\uC9C1 \uACF5\uAC1C\uB41C \uC2A4\uB0C5\uC0F7\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.',
-    uncertaintyNote:
-      '\uC0C1\uC704 \uD53C\uB4DC\uC5D0\uC11C \uACF5\uAC1C\uAC00 \uC2DC\uC791\uB420 \uB54C\uAE4C\uC9C0 \uC77D\uAE30 \uC804\uC6A9 UI\uB97C \uC548\uC815\uC801\uC73C\uB85C \uC720\uC9C0\uD558\uB294 \uAC12\uC785\uB2C8\uB2E4.',
+    freshnessNote: '아직 공개된 스냅샷이 없습니다.',
+    uncertaintyNote: '상위 피드에서 공개가 시작될 때까지 읽기 전용 UI를 안정적으로 유지하는 값입니다.',
     metrics: toZeroMetrics(signal.metrics),
     drivers: toZeroDrivers(signal.title),
   } as T;
@@ -52,15 +67,14 @@ function createEmptySignals() {
     pentagon: demoSignals.pentagon.map((signal) => ({
       ...toZeroBaseSignal(signal, updatedAt),
       sampleSize: 0,
-      coverageLabel: '\uC544\uC9C1 \uC2E4\uC2DC\uAC04 \uCEE4\uBC84\uB9AC\uC9C0\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4',
+      coverageLabel: '아직 실시간 커버리지가 없습니다',
     })),
     psychology: demoSignals.psychology.map((signal) => toZeroBaseSignal(signal, updatedAt)),
     social: demoSignals.social.map((signal) => ({
       ...toZeroBaseSignal(signal, updatedAt),
       sourceCount: 0,
-      sources: ['\uCD9C\uCC98 \uC5C6\uC74C'],
-      approvalNote:
-        '\uC544\uC9C1 \uC2B9\uC778\uB41C SNS \uD56D\uBAA9\uC774 \uC5C6\uC5B4 \uB300\uAE30 \uC0C1\uD0DC\uB85C \uD45C\uC2DC\uB429\uB2C8\uB2E4.',
+      sources: ['출처 없음'],
+      approvalNote: '아직 승인된 SNS 항목이 없어 대기 상태로 표시됩니다.',
     })),
   };
 }
@@ -76,21 +90,126 @@ function mergeSignalsWithFallback<T extends SignalItem>(signals: T[], fallback: 
   ]);
 }
 
-async function loadIndicatorSignals() {
-  if (useDemoData) {
-    return sortByUpdatedAt([...demoSignals.pentagon, ...demoSignals.psychology]);
+function normalizeConfidenceBand(value: unknown): ConfidenceBand {
+  const numericValue = typeof value === 'number' ? value : Number(value);
+
+  if (Number.isFinite(numericValue)) {
+    if (numericValue >= 0.8) {
+      return 'high';
+    }
+
+    if (numericValue >= 0.5) {
+      return 'medium';
+    }
   }
 
-  const { data, error } = await getSupabaseClient()
-    .from(supabaseViews.indicators)
-    .select('*')
-    .order('updated_at', { ascending: false });
-
-  if (error) {
-    throw new Error(error.message);
+  if (value === 'high' || value === 'medium' || value === 'limited') {
+    return value;
   }
 
-  return sortByUpdatedAt(parseIndicatorRows(data));
+  return 'limited';
+}
+
+function replaceSlug(itemKey: string) {
+  return itemKey.replaceAll(':', '-');
+}
+
+function toIndicatorRowFromCard(tab: 'pentagon' | 'psychology', card: PublicFeedCard) {
+  const content = card.content ?? {};
+
+  return {
+    id: card.itemKey,
+    slug: replaceSlug(card.itemKey),
+    domain: tab,
+    title: typeof content.title === 'string' ? content.title : card.title ?? card.itemKey,
+    subtitle: typeof content.subtitle === 'string' ? content.subtitle : card.subtitle ?? '',
+    summary:
+      typeof content.summary === 'string'
+        ? content.summary
+        : typeof content.body === 'string'
+          ? content.body
+          : card.body ?? '',
+    score:
+      typeof content.score === 'number'
+        ? content.score
+        : typeof content.valueNumeric === 'number'
+          ? content.valueNumeric
+          : Number(content.score ?? content.valueNumeric ?? 0),
+    classification:
+      typeof content.classification === 'string'
+        ? content.classification
+        : typeof content.direction === 'string'
+          ? content.direction
+          : 'stable',
+    change: Number(content.change ?? 0),
+    updated_at: card.publishedAt ?? new Date().toISOString(),
+    confidence_band: normalizeConfidenceBand(content.confidence),
+    freshness_note: typeof content.freshnessNote === 'string' ? content.freshnessNote : undefined,
+    uncertainty_note: typeof content.uncertaintyNote === 'string' ? content.uncertaintyNote : undefined,
+    detail_path: `/${tab}/${replaceSlug(card.itemKey)}`,
+    metrics: Array.isArray(content.metrics) ? content.metrics : [],
+    drivers: Array.isArray(content.drivers) ? content.drivers : [],
+    cadence_hours: Number(content.cadenceHours ?? 1),
+    sample_size: Number(content.sampleSize ?? 0),
+    coverage_label: typeof content.coverageLabel === 'string' ? content.coverageLabel : 'Aggregate sample',
+  };
+}
+
+function toSocialRowFromCard(card: PublicFeedCard) {
+  const content = card.content ?? {};
+
+  return {
+    id: card.itemKey,
+    slug: replaceSlug(card.itemKey),
+    title: typeof content.title === 'string' ? content.title : card.title ?? card.itemKey,
+    subtitle: typeof content.subtitle === 'string' ? content.subtitle : card.subtitle ?? '',
+    summary:
+      typeof content.summary === 'string'
+        ? content.summary
+        : typeof content.body === 'string'
+          ? content.body
+          : card.body ?? '',
+    score: Number(content.score ?? content.valueNumeric ?? 0),
+    classification: typeof content.classification === 'string' ? content.classification : 'approved',
+    change: Number(content.change ?? 0),
+    updated_at: card.publishedAt ?? new Date().toISOString(),
+    confidence_band: normalizeConfidenceBand(content.confidence),
+    freshness_note: typeof content.freshnessNote === 'string' ? content.freshnessNote : undefined,
+    uncertainty_note: typeof content.uncertaintyNote === 'string' ? content.uncertaintyNote : undefined,
+    detail_path: `/sns/${replaceSlug(card.itemKey)}`,
+    metrics: Array.isArray(content.metrics) ? content.metrics : [],
+    drivers: Array.isArray(content.drivers) ? content.drivers : [],
+    cadence_hours: Number(content.cadenceHours ?? 1),
+    source_count: Number(content.sourceCount ?? 0),
+    categories: Array.isArray(content.categories) ? content.categories : [],
+    sources: Array.isArray(content.sourceItems) ? content.sourceItems : [],
+    approval_note: typeof content.approvalNote === 'string' ? content.approvalNote : '',
+  };
+}
+
+async function invokePublicFeed(functionName: 'public-feed-pentagon' | 'public-feed-psychology-v2' | 'public-feed-sns') {
+  const result = await getSupabaseClient().functions.invoke(functionName, {
+    body: {},
+  });
+
+  if (result.error) {
+    throw result.error;
+  }
+
+  return result.data as PublicFeedResponse;
+}
+
+async function loadIndicatorSignalsFromFunctions(tab: 'pentagon' | 'psychology') {
+  const functionName = tab === 'pentagon' ? 'public-feed-pentagon' : 'public-feed-psychology-v2';
+  const payload = await invokePublicFeed(functionName);
+  const rows = (payload.cards ?? []).map((card) => toIndicatorRowFromCard(tab, card));
+  return sortByUpdatedAt(parseIndicatorRows(rows));
+}
+
+async function loadSocialSignalsFromFunctions() {
+  const payload = await invokePublicFeed('public-feed-sns');
+  const rows = (payload.cards ?? []).map((card) => toSocialRowFromCard(card));
+  return sortByUpdatedAt(parseSocialRows(rows));
 }
 
 export async function fetchPentagonSignals(): Promise<PentagonSignal[]> {
@@ -98,11 +217,16 @@ export async function fetchPentagonSignals(): Promise<PentagonSignal[]> {
     return sortByUpdatedAt([...demoSignals.pentagon]);
   }
 
-  const signals = await loadIndicatorSignals();
-  return mergeSignalsWithFallback(
-    signals.filter((signal): signal is PentagonSignal => signal.domain === 'pentagon'),
-    emptySignals.pentagon,
-  );
+  try {
+    const signals = await loadIndicatorSignalsFromFunctions('pentagon');
+    return applyLocalSignalOverrides(mergeSignalsWithFallback(
+      signals.filter((signal): signal is PentagonSignal => signal.domain === 'pentagon'),
+      emptySignals.pentagon,
+    ));
+  } catch (error) {
+    console.warn('Falling back after pentagon public feed read failed', error);
+    return applyLocalSignalOverrides(mergeSignalsWithFallback([], emptySignals.pentagon));
+  }
 }
 
 export async function fetchPsychologySignals(): Promise<PsychologySignal[]> {
@@ -110,11 +234,16 @@ export async function fetchPsychologySignals(): Promise<PsychologySignal[]> {
     return sortByUpdatedAt([...demoSignals.psychology]);
   }
 
-  const signals = await loadIndicatorSignals();
-  return mergeSignalsWithFallback(
-    signals.filter((signal): signal is PsychologySignal => signal.domain === 'psychology'),
-    emptySignals.psychology,
-  );
+  try {
+    const signals = await loadIndicatorSignalsFromFunctions('psychology');
+    return applyLocalSignalOverrides(mergeSignalsWithFallback(
+      signals.filter((signal): signal is PsychologySignal => signal.domain === 'psychology'),
+      emptySignals.psychology,
+    ));
+  } catch (error) {
+    console.warn('Falling back after psychology public feed read failed', error);
+    return applyLocalSignalOverrides(mergeSignalsWithFallback([], emptySignals.psychology));
+  }
 }
 
 export async function fetchSocialSignals(): Promise<SocialSignal[]> {
@@ -122,16 +251,13 @@ export async function fetchSocialSignals(): Promise<SocialSignal[]> {
     return sortByUpdatedAt([...demoSignals.social]);
   }
 
-  const { data, error } = await getSupabaseClient()
-    .from(supabaseViews.social)
-    .select('*')
-    .order('updated_at', { ascending: false });
-
-  if (error) {
-    throw new Error(error.message);
+  try {
+    const signals = await loadSocialSignalsFromFunctions();
+    return applyLocalSignalOverrides(mergeSignalsWithFallback(signals, emptySignals.social));
+  } catch (error) {
+    console.warn('Falling back after social public feed read failed', error);
+    return applyLocalSignalOverrides(mergeSignalsWithFallback([], emptySignals.social));
   }
-
-  return mergeSignalsWithFallback(parseSocialRows(data), emptySignals.social);
 }
 
 export async function fetchHomeSignals(): Promise<SignalItem[]> {

@@ -1,23 +1,31 @@
 import { useEffect, useState } from 'react';
 
 import {
-  canEditSocialSignals,
-  createSocialSignalEditorDraft,
+  canEditSignals,
+  createSignalEditorDraft,
   hasVerifiedAdminPassword,
-  publishSocialSignalEdit,
+  publishSignalEdit,
   verifyEditorPassword,
-  type SocialSignalEditorDraft,
+  type SignalEditorDraft,
 } from '../lib/editor';
-import type { SocialSignal } from '../lib/types';
+import type { SignalItem } from '../lib/types';
 
-interface SocialSignalEditorProps {
-  item: SocialSignal;
+interface SignalEditorSheetProps {
+  item: SignalItem;
   onClose: () => void;
   onSaved: () => Promise<void> | void;
 }
 
-export function SocialSignalEditor({ item, onClose, onSaved }: SocialSignalEditorProps) {
-  const [draft, setDraft] = useState<SocialSignalEditorDraft>(() => createSocialSignalEditorDraft(item));
+function isSocialSignal(item: SignalItem) {
+  return item.domain === 'social';
+}
+
+function isPentagonSignal(item: SignalItem) {
+  return item.domain === 'pentagon';
+}
+
+export function SignalEditorSheet({ item, onClose, onSaved }: SignalEditorSheetProps) {
+  const [draft, setDraft] = useState<SignalEditorDraft>(() => createSignalEditorDraft(item));
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState<string | null>(null);
   const [editorUnlocked, setEditorUnlocked] = useState(hasVerifiedAdminPassword());
@@ -25,17 +33,17 @@ export function SocialSignalEditor({ item, onClose, onSaved }: SocialSignalEdito
   const [verifying, setVerifying] = useState(false);
 
   useEffect(() => {
-    setDraft(createSocialSignalEditorDraft(item));
+    setDraft(createSignalEditorDraft(item));
     setPassword('');
     setMessage(null);
     setEditorUnlocked(hasVerifiedAdminPassword());
   }, [item]);
 
-  if (!canEditSocialSignals()) {
+  if (!canEditSignals()) {
     return null;
   }
 
-  function updateDraft<K extends keyof SocialSignalEditorDraft>(key: K, value: SocialSignalEditorDraft[K]) {
+  function updateDraft<K extends keyof SignalEditorDraft>(key: K, value: SignalEditorDraft[K]) {
     setDraft((current) => ({
       ...current,
       [key]: value,
@@ -76,11 +84,11 @@ export function SocialSignalEditor({ item, onClose, onSaved }: SocialSignalEdito
     setSaving(true);
 
     try {
-      await publishSocialSignalEdit(item, draft);
+      await publishSignalEdit(item, draft);
       await onSaved();
       onClose();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'SNS 편집 내용을 저장하지 못했습니다.');
+      setMessage(error instanceof Error ? error.message : '카드 편집 내용을 저장하지 못했습니다.');
       setEditorUnlocked(hasVerifiedAdminPassword());
     } finally {
       setSaving(false);
@@ -88,13 +96,13 @@ export function SocialSignalEditor({ item, onClose, onSaved }: SocialSignalEdito
   }
 
   return (
-    <div className="editor-sheet" role="dialog" aria-modal="true" aria-label="SNS 편집">
+    <div className="editor-sheet" role="dialog" aria-modal="true" aria-label="카드 편집">
       <button type="button" className="editor-sheet__backdrop" onClick={onClose} aria-label="닫기" />
 
       <div className="editor-sheet__panel">
         <div className="editor-sheet__header">
           <div>
-            <strong className="editor-sheet__eyebrow">원본 화면에서 바로 편집</strong>
+            <strong className="editor-sheet__eyebrow">미니앱에서 바로 편집</strong>
             <h2 className="editor-sheet__title">{item.title}</h2>
           </div>
           <button type="button" className="button button--ghost" onClick={onClose}>
@@ -140,15 +148,6 @@ export function SocialSignalEditor({ item, onClose, onSaved }: SocialSignalEdito
                 </label>
               </div>
 
-              <label className="editor-sheet__field">
-                <span>요약</span>
-                <textarea
-                  rows={4}
-                  value={draft.summary}
-                  onChange={(event) => updateDraft('summary', event.target.value)}
-                />
-              </label>
-
               <div className="editor-sheet__grid">
                 <label className="editor-sheet__field">
                   <span>상태 문구</span>
@@ -177,6 +176,15 @@ export function SocialSignalEditor({ item, onClose, onSaved }: SocialSignalEdito
                 </label>
               </div>
 
+              <label className="editor-sheet__field">
+                <span>요약</span>
+                <textarea
+                  rows={4}
+                  value={draft.summary}
+                  onChange={(event) => updateDraft('summary', event.target.value)}
+                />
+              </label>
+
               <div className="editor-sheet__metrics">
                 <strong>지표 요약</strong>
                 {draft.metrics.map((metric, index) => (
@@ -204,34 +212,59 @@ export function SocialSignalEditor({ item, onClose, onSaved }: SocialSignalEdito
                 />
               </label>
 
-              <div className="editor-sheet__grid">
-                <label className="editor-sheet__field">
-                  <span>카테고리</span>
-                  <textarea
-                    rows={3}
-                    value={draft.categoriesText}
-                    onChange={(event) => updateDraft('categoriesText', event.target.value)}
-                  />
-                </label>
+              {isPentagonSignal(item) ? (
+                <div className="editor-sheet__grid">
+                  <label className="editor-sheet__field">
+                    <span>커버리지</span>
+                    <input
+                      value={draft.coverageLabel}
+                      onChange={(event) => updateDraft('coverageLabel', event.target.value)}
+                    />
+                  </label>
 
-                <label className="editor-sheet__field">
-                  <span>출처</span>
-                  <textarea
-                    rows={3}
-                    value={draft.sourcesText}
-                    onChange={(event) => updateDraft('sourcesText', event.target.value)}
-                  />
-                </label>
-              </div>
+                  <label className="editor-sheet__field">
+                    <span>표본 수</span>
+                    <input
+                      inputMode="numeric"
+                      value={draft.sampleSize}
+                      onChange={(event) => updateDraft('sampleSize', event.target.value)}
+                    />
+                  </label>
+                </div>
+              ) : null}
 
-              <label className="editor-sheet__field">
-                <span>확인 안내 문구</span>
-                <textarea
-                  rows={3}
-                  value={draft.approvalNote}
-                  onChange={(event) => updateDraft('approvalNote', event.target.value)}
-                />
-              </label>
+              {isSocialSignal(item) ? (
+                <>
+                  <div className="editor-sheet__grid">
+                    <label className="editor-sheet__field">
+                      <span>카테고리</span>
+                      <textarea
+                        rows={3}
+                        value={draft.categoriesText}
+                        onChange={(event) => updateDraft('categoriesText', event.target.value)}
+                      />
+                    </label>
+
+                    <label className="editor-sheet__field">
+                      <span>출처</span>
+                      <textarea
+                        rows={3}
+                        value={draft.sourcesText}
+                        onChange={(event) => updateDraft('sourcesText', event.target.value)}
+                      />
+                    </label>
+                  </div>
+
+                  <label className="editor-sheet__field">
+                    <span>검토 안내</span>
+                    <textarea
+                      rows={3}
+                      value={draft.approvalNote}
+                      onChange={(event) => updateDraft('approvalNote', event.target.value)}
+                    />
+                  </label>
+                </>
+              ) : null}
             </div>
 
             <div className="editor-sheet__actions">

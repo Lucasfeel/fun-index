@@ -515,6 +515,99 @@ export async function publishRunToCurrentState(
   };
 }
 
+function inferLayoutItemKind(tabSlug: FeedTab) {
+  return tabSlug === 'sns_feed' ? 'sns_rollup' : 'indicator_card';
+}
+
+async function ensureLayoutItem(
+  client: SupabaseClient,
+  input: {
+    tabSlug: FeedTab;
+    itemKey: string;
+    payload: Record<string, unknown>;
+  },
+) {
+  const existing = await client
+    .from('feed_layout_items')
+    .select('id, tab_slug, item_key, item_kind, title, subtitle, body')
+    .eq('tab_slug', input.tabSlug)
+    .eq('item_key', input.itemKey)
+    .maybeSingle();
+
+  if (existing.error) {
+    throw errorResponse(500, 'LAYOUT_ITEM_READ_FAILED', 'Could not read feed layout item.', {
+      supabaseError: existing.error.message,
+      itemKey: input.itemKey,
+    });
+  }
+
+  if (existing.data) {
+    return existing.data;
+  }
+
+  const orderResult = await client
+    .from('feed_layout_items')
+    .select('order_index')
+    .eq('tab_slug', input.tabSlug)
+    .order('order_index', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (orderResult.error) {
+    throw errorResponse(500, 'LAYOUT_ORDER_READ_FAILED', 'Could not determine layout order.', {
+      supabaseError: orderResult.error.message,
+      tabSlug: input.tabSlug,
+    });
+  }
+
+  const title =
+    typeof input.payload.title === 'string' && input.payload.title.trim().length > 0
+      ? input.payload.title.trim()
+      : input.itemKey;
+  const subtitle =
+    typeof input.payload.subtitle === 'string' && input.payload.subtitle.trim().length > 0
+      ? input.payload.subtitle.trim()
+      : '';
+  const body =
+    typeof input.payload.body === 'string' && input.payload.body.trim().length > 0
+      ? input.payload.body.trim()
+      : typeof input.payload.summary === 'string' && input.payload.summary.trim().length > 0
+        ? input.payload.summary.trim()
+        : '';
+
+  const inserted = await client
+    .from('feed_layout_items')
+    .upsert(
+      {
+        tab_slug: input.tabSlug,
+        item_key: input.itemKey,
+        item_kind: inferLayoutItemKind(input.tabSlug),
+        source_ref: null,
+        title,
+        subtitle,
+        body,
+        order_index: (orderResult.data?.order_index ?? 0) + 10,
+        is_visible: true,
+        config: {
+          editorOwned: true,
+          autoCreated: true,
+        },
+      },
+      { onConflict: 'tab_slug,item_key' },
+    )
+    .select('id, tab_slug, item_key, item_kind, title, subtitle, body')
+    .single();
+
+  if (inserted.error || !inserted.data) {
+    throw errorResponse(500, 'LAYOUT_ITEM_CREATE_FAILED', 'Could not create feed layout item.', {
+      supabaseError: inserted.error?.message,
+      itemKey: input.itemKey,
+    });
+  }
+
+  return inserted.data;
+}
+
 export async function publishOverride(
   client: SupabaseClient,
   input: {
@@ -526,34 +619,25 @@ export async function publishOverride(
     actorRoles: string[];
   },
 ) {
-  const layoutResult = await client
-    .from('feed_layout_items')
-    .select('id, tab_slug, item_key, item_kind, title, subtitle, body')
-    .eq('tab_slug', input.tabSlug)
-    .eq('item_key', input.itemKey)
-    .maybeSingle();
-
-  if (layoutResult.error || !layoutResult.data) {
-    throw errorResponse(404, 'LAYOUT_ITEM_NOT_FOUND', 'Feed layout item was not found.', {
-      supabaseError: layoutResult.error?.message,
-      itemKey: input.itemKey,
-    });
-  }
-
   const payload = input.payload ?? {};
+  const layoutItem = await ensureLayoutItem(client, {
+    tabSlug: input.tabSlug,
+    itemKey: input.itemKey,
+    payload,
+  });
   const content = {
     title:
       typeof payload.title === 'string' && payload.title.trim().length > 0
         ? payload.title
-        : layoutResult.data.title,
+        : layoutItem.title,
     subtitle:
       typeof payload.subtitle === 'string' && payload.subtitle.trim().length > 0
         ? payload.subtitle
-        : layoutResult.data.subtitle,
+        : layoutItem.subtitle,
     body:
       typeof payload.body === 'string' && payload.body.trim().length > 0
         ? payload.body
-        : layoutResult.data.body,
+        : layoutItem.body,
     ...payload,
   };
 
@@ -581,15 +665,15 @@ export async function publishOverride(
   await supersedeCurrentState(client, {
     tabSlug: input.tabSlug,
     itemKey: input.itemKey,
-      itemKind: layoutResult.data.item_kind,
-      sourceType: 'manual_override',
-      sourceId: overrideInsert.data.id,
-      sourceRunId: null,
-      layoutItemId: layoutResult.data.id,
-      overrideId: overrideInsert.data.id,
-      content,
-      publishedBy: input.actorUserId,
-    });
+    itemKind: layoutItem.item_kind,
+    sourceType: 'manual_override',
+    sourceId: overrideInsert.data.id,
+    sourceRunId: null,
+    layoutItemId: layoutItem.id,
+    overrideId: overrideInsert.data.id,
+    content,
+    publishedBy: input.actorUserId,
+  });
 
   const publishEvent = await client
     .from('publish_events')

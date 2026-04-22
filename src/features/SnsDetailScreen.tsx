@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
 import { DataFacts, DetailHero, DriverList, MetricGrid, StatePanel } from '../components/Feed';
-import { SocialSignalEditor } from '../components/SocialSignalEditor';
+import { SignalEditorSheet } from '../components/SignalEditorSheet';
 import { NoticeStrip, PageContainer, DetailHeader, Section } from '../components/Page';
-import { canEditSocialSignals } from '../lib/editor';
+import { canEditSignals } from '../lib/editor';
 import { useSocialSignal } from '../lib/queries';
 
 export function SnsDetailScreen() {
@@ -24,7 +24,7 @@ export function SnsDetailScreen() {
         title={item?.title ?? 'SNS 시그널 상세'}
         fallbackPath="/sns"
         action={
-          item && canEditSocialSignals() ? (
+          item && canEditSignals() ? (
             <button type="button" className="button button--ghost" onClick={() => setEditorOpen(true)}>
               편집
             </button>
@@ -88,7 +88,7 @@ export function SnsDetailScreen() {
       ) : null}
 
       {item && editorOpen ? (
-        <SocialSignalEditor item={item} onClose={() => setEditorOpen(false)} onSaved={handleSaved} />
+        <SignalEditorSheet item={item} onClose={() => setEditorOpen(false)} onSaved={handleSaved} />
       ) : null}
     </PageContainer>
   );

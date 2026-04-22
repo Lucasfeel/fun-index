@@ -265,13 +265,25 @@ values
   ),
   (
     'psychology',
+    'psychology:positioning-heat',
+    'indicator_card',
+    null,
+    'Crypto Fear & Greed',
+    'Crypto sentiment',
+    'Crypto market emotion index for manual editorial updates.',
+    20,
+    true,
+    jsonb_build_object('display', jsonb_build_object('format', 'gauge'), 'editor_owned', true)
+  ),
+  (
+    'psychology',
     'psychology:market-breadth',
     'indicator_card',
     'market_breadth',
     'Market Breadth',
     'Participation signal',
     'Secondary psychology signal for context.',
-    20,
+    30,
     true,
     jsonb_build_object('display', jsonb_build_object('format', 'delta'))
   ),

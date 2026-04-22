@@ -1,6 +1,9 @@
+import { useState, type ReactNode } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import clsx from 'clsx';
-import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
+
+import { canEditSignals } from '../lib/editor';
 import type { FreshnessState, SignalItem } from '../lib/types';
 import {
   formatAbsoluteTime,
@@ -10,6 +13,7 @@ import {
   getMetricToneClass,
   getScoreTone,
 } from '../lib/format';
+import { SignalEditorSheet } from './SignalEditorSheet';
 
 interface StatePanelProps {
   title: string;
@@ -29,11 +33,11 @@ interface GaugeBand {
 }
 
 const gaugeBands: GaugeBand[] = [
-  { color: '#D73C38', label: '\uB9E4\uC6B0 \uB0AE\uC74C' },
-  { color: '#EC891C', label: '\uB0AE\uC74C' },
-  { color: '#FDD52C', label: '\uBCF4\uD1B5' },
-  { color: '#A1CE2D', label: '\uB192\uC74C' },
-  { color: '#56B678', label: '\uB9E4\uC6B0 \uB192\uC74C' },
+  { color: '#D73C38', label: '매우 낮음' },
+  { color: '#EC891C', label: '낮음' },
+  { color: '#FDD52C', label: '보통' },
+  { color: '#A1CE2D', label: '높음' },
+  { color: '#56B678', label: '매우 높음' },
 ];
 
 function clampScore(score: number) {
@@ -41,14 +45,14 @@ function clampScore(score: number) {
 }
 
 function isWaitingSignal(item: SignalItem) {
-  return item.classification === '\uB300\uAE30 \uC911';
+  return item.classification === '대기 중';
 }
 
 function getGaugeBand(item: SignalItem) {
   if (isWaitingSignal(item)) {
     return {
       color: '#8B95A1',
-      label: '\uB300\uAE30',
+      label: '대기',
     } satisfies GaugeBand;
   }
 
@@ -95,14 +99,14 @@ function FreshnessBadge({
 
 function getFreshnessLabel(state: FreshnessState) {
   if (state === 'fresh') {
-    return '\uCD5C\uC2E0';
+    return '최신';
   }
 
   if (state === 'aging') {
-    return '\uC8FC\uC758';
+    return '주의';
   }
 
-  return '\uC9C0\uC5F0';
+  return '지연';
 }
 
 function ScoreBubble({ score }: { score: number }) {
@@ -190,7 +194,7 @@ function SignalGauge({ item }: { item: SignalItem }) {
 
 function getFeedStatement(item: SignalItem) {
   if (isWaitingSignal(item)) {
-    return '\uCCAB \uACF5\uAC1C \uB370\uC774\uD130 \uB300\uAE30 \uC911';
+    return '첫 공개 데이터 대기 중';
   }
 
   return item.classification;
@@ -198,12 +202,28 @@ function getFeedStatement(item: SignalItem) {
 
 export function FeedCard({ item }: { item: SignalItem }) {
   const band = getGaugeBand(item);
+  const queryClient = useQueryClient();
+  const [editorOpen, setEditorOpen] = useState(false);
+
+  async function handleSaved() {
+    await queryClient.invalidateQueries({ queryKey: ['signals'] });
+  }
 
   return (
     <article className="feed-card">
-      <Link to={item.detailPath} className="feed-card__link">
-        <h2 className="feed-card__title">{item.title}</h2>
+      <div className="feed-card__header">
+        <Link to={item.detailPath} className="feed-card__title-link">
+          <h2 className="feed-card__title">{item.title}</h2>
+        </Link>
 
+        {canEditSignals() ? (
+          <button type="button" className="button button--ghost button--small feed-card__edit" onClick={() => setEditorOpen(true)}>
+            편집
+          </button>
+        ) : null}
+      </div>
+
+      <Link to={item.detailPath} className="feed-card__link">
         <div className="feed-card__gauge-row">
           <SignalGauge item={item} />
 
@@ -215,6 +235,10 @@ export function FeedCard({ item }: { item: SignalItem }) {
           </div>
         </div>
       </Link>
+
+      {editorOpen ? (
+        <SignalEditorSheet item={item} onClose={() => setEditorOpen(false)} onSaved={handleSaved} />
+      ) : null}
     </article>
   );
 }
@@ -245,7 +269,7 @@ export function DetailHero({ item, contextualNote }: DetailHeroProps) {
       </div>
 
       <div className="detail-note">
-        <strong>{'\uD604\uC7AC \uD750\uB984\uC744 \uAC04\uB2E8\uD788 \uC77D\uC5B4\uBCF4\uC138\uC694.'}</strong>
+        <strong>현재 흐름을 간단히 읽어보세요.</strong>
         <p>{contextualNote}</p>
       </div>
     </section>
