@@ -13,7 +13,7 @@ function getContextualNote(signal: IndexSignal) {
     return '집계된 활동 흐름을 보여주는 지표입니다. 개별 장소나 방향성 예측보다는 전체 분위기를 읽는 용도로 보세요.';
   }
 
-  return '수집 시점의 심리와 포지셔닝 상태를 보여주는 지표입니다. 확정 신호보다는 현재 분위기를 읽는 참고용으로 보세요.';
+  return '수집 시점의 시장 심리 상태를 보여주는 지표입니다. 확정 신호보다는 현재 분위기를 읽는 참고용으로 보세요.';
 }
 
 export function IndicatorDetailScreen({ domain }: IndicatorDetailScreenProps) {

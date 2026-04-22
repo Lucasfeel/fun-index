@@ -257,6 +257,11 @@ pre {
   font-size: 0.88rem;
 }
 
+.table-stack {
+  display: grid;
+  gap: 6px;
+}
+
 .badge {
   display: inline-flex;
   align-items: center;
@@ -358,6 +363,127 @@ pre {
   background: rgba(255, 255, 255, 0.75);
 }
 
+.control-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.control-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.control-form label {
+  display: grid;
+  gap: 8px;
+}
+
+.control-form input,
+.control-form textarea,
+.control-form select {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(18, 32, 45, 0.12);
+  background: rgba(255, 255, 255, 0.75);
+}
+
+.control-form__full {
+  grid-column: 1 / -1;
+}
+
+.control-form__toggle {
+  align-content: start;
+}
+
+.control-form__toggle input {
+  width: 18px;
+  height: 18px;
+}
+
+.preview-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+  gap: 16px;
+}
+
+.preview-card {
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(18, 32, 45, 0.08);
+}
+
+.preview-card--secondary {
+  align-content: start;
+}
+
+.preview-card h3 {
+  margin: 0;
+  font-size: 1.45rem;
+  letter-spacing: -0.03em;
+}
+
+.preview-card p {
+  margin: 0;
+  color: #4d5d68;
+  line-height: 1.5;
+}
+
+.preview-card__topline {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.preview-card__score {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.preview-card__score strong {
+  font-size: 2.4rem;
+  line-height: 1;
+  letter-spacing: -0.05em;
+}
+
+.preview-card__score span,
+.preview-card__classification {
+  color: #596976;
+  font-weight: 600;
+}
+
+.preview-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.preview-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(36, 74, 148, 0.1);
+  color: #244a94;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.preview-list {
+  margin: 0;
+  padding-left: 18px;
+  color: #4d5d68;
+  display: grid;
+  gap: 10px;
+}
+
 .result-block {
   margin-top: 18px;
 }
@@ -434,6 +560,12 @@ pre {
   }
 
   .rerun-form {
+    grid-template-columns: 1fr;
+  }
+
+  .control-grid,
+  .control-form,
+  .preview-grid {
     grid-template-columns: 1fr;
   }
 }

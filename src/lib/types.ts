@@ -3,7 +3,10 @@ export type FreshnessState = 'fresh' | 'aging' | 'stale';
 export type MetricTone = 'cool' | 'neutral' | 'warm';
 export type FeedDomain = 'pentagon' | 'psychology' | 'social';
 export type PentagonIndexType = 'pizza' | 'gay-bar';
-export type PsychologyIndicatorType = 'fear-greed' | 'positioning-heat' | 'breadth-stress';
+export type PsychologyIndicatorType =
+  | 'us-stock-fear-greed'
+  | 'crypto-fear-greed'
+  | 'kr-stock-fear-greed';
 export type IndicatorDomain = 'pentagon' | 'psychology';
 
 export interface FeedMetric {

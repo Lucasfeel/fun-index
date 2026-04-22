@@ -48,13 +48,6 @@ export type FeedItemKind =
 
 export type MetricTone = 'cool' | 'neutral' | 'warm';
 
-export type AdminRole =
-  | 'viewer'
-  | 'ops'
-  | 'reviewer'
-  | 'publisher'
-  | 'admin';
-
 export interface ProviderRecord {
   id: string;
   code: string;
@@ -176,53 +169,6 @@ export interface SnsAdminItemRecord {
   publishedAt: string | null;
   sourceRunId: string | null;
   hasPublishedState: boolean;
-}
-
-export interface FeedCardPayload {
-  itemKey: string;
-  title: string;
-  subtitle?: string | null;
-  body?: string | null;
-  kind: FeedItemKind;
-  content: Record<string, unknown>;
-  publishedAt: string;
-  freshnessDeadlineAt: string | null;
-  sourceRunId: string | null;
-}
-
-export interface PublicFeedResponse {
-  tab: FeedTab;
-  generatedAt: string;
-  cards: FeedCardPayload[];
-}
-
-export interface PublishCurrentStateRequest {
-  runId: string;
-  mode: 'automatic' | 'review_approved' | 'manual_override';
-  reviewQueueIds?: string[];
-  actorReason?: string;
-}
-
-export interface PublishCurrentStateResponse {
-  publishEventId: string;
-  publishedItemCount: number;
-  runId: string;
-}
-
-export interface AdminRerunRequest {
-  jobSlug: string;
-  mode: 'one_shot' | 'backfill' | 'publish_only';
-  idempotencyKey: string;
-  backfillStartAt?: string;
-  backfillEndAt?: string;
-  overridePayload?: Record<string, unknown>;
-  reason?: string;
-}
-
-export interface AdminRerunResponse {
-  requestId: string;
-  runId: string;
-  status: RunStatus;
 }
 
 export interface AdminOverridePublishRequest {

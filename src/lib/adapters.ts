@@ -61,7 +61,16 @@ const indicatorRowSchema = z.object({
   sample_size: z.coerce.number().optional().default(0),
   coverage_label: z.string().optional().default('Aggregate sample'),
   index_type: z.enum(['pizza', 'gay-bar']).optional(),
-  indicator_type: z.enum(['fear-greed', 'positioning-heat', 'breadth-stress']).optional(),
+  indicator_type: z
+    .enum([
+      'fear-greed',
+      'positioning-heat',
+      'breadth-stress',
+      'us-stock-fear-greed',
+      'crypto-fear-greed',
+      'kr-stock-fear-greed',
+    ])
+    .optional(),
 });
 
 const socialRowSchema = z.object({
@@ -95,15 +104,70 @@ function inferPentagonType(slug: string): PentagonIndexType {
 }
 
 function inferPsychologyType(slug: string): PsychologyIndicatorType {
-  if (slug.includes('fear') || slug.includes('greed')) {
-    return 'fear-greed';
+  if (slug.includes('us-stock') || slug.includes('fear') || slug.includes('greed')) {
+    return 'us-stock-fear-greed';
   }
 
-  if (slug.includes('position')) {
-    return 'positioning-heat';
+  if (slug.includes('crypto') || slug.includes('coin') || slug.includes('position')) {
+    return 'crypto-fear-greed';
   }
 
-  return 'breadth-stress';
+  return 'kr-stock-fear-greed';
+}
+
+function stripPrefix(value: string, prefix: string) {
+  return value.startsWith(prefix) ? value.slice(prefix.length) : value;
+}
+
+function normalizeIndicatorSlug(domain: PentagonSignal['domain'] | PsychologySignal['domain'], slug: string) {
+  const baseSlug = domain === 'pentagon' ? stripPrefix(slug, 'pentagon-') : stripPrefix(slug, 'psychology-');
+
+  if (domain !== 'psychology') {
+    return baseSlug;
+  }
+
+  if (baseSlug === 'fear-greed') {
+    return 'us-stock-fear-greed';
+  }
+
+  if (baseSlug === 'positioning-heat') {
+    return 'crypto-fear-greed';
+  }
+
+  if (baseSlug === 'market-breadth' || baseSlug === 'breadth-stress') {
+    return 'kr-stock-fear-greed';
+  }
+
+  return baseSlug;
+}
+
+function normalizeSocialSlug(slug: string) {
+  return stripPrefix(slug, 'sns-');
+}
+
+function normalizePsychologyType(
+  value:
+    | 'fear-greed'
+    | 'positioning-heat'
+    | 'breadth-stress'
+    | 'us-stock-fear-greed'
+    | 'crypto-fear-greed'
+    | 'kr-stock-fear-greed'
+    | undefined,
+) {
+  if (value === 'fear-greed') {
+    return 'us-stock-fear-greed' satisfies PsychologyIndicatorType;
+  }
+
+  if (value === 'positioning-heat') {
+    return 'crypto-fear-greed' satisfies PsychologyIndicatorType;
+  }
+
+  if (value === 'breadth-stress') {
+    return 'kr-stock-fear-greed' satisfies PsychologyIndicatorType;
+  }
+
+  return value;
 }
 
 function toIndicatorDetailPath(domain: PentagonSignal['domain'] | PsychologySignal['domain'], slug: string) {
@@ -116,9 +180,10 @@ function toSocialDetailPath(slug: string) {
 
 export function mapIndicatorRow(row: unknown): IndexSignal {
   const parsed = indicatorRowSchema.parse(row);
+  const normalizedSlug = normalizeIndicatorSlug(parsed.domain, parsed.slug);
   const base = {
     id: parsed.id,
-    slug: parsed.slug,
+    slug: normalizedSlug,
     domain: parsed.domain,
     title: parsed.title,
     subtitle: parsed.subtitle,
@@ -130,7 +195,7 @@ export function mapIndicatorRow(row: unknown): IndexSignal {
     confidenceBand: parsed.confidence_band,
     freshnessNote: parsed.freshness_note,
     uncertaintyNote: parsed.uncertainty_note,
-    detailPath: parsed.detail_path ?? toIndicatorDetailPath(parsed.domain, parsed.slug),
+    detailPath: toIndicatorDetailPath(parsed.domain, normalizedSlug),
     metrics: parsed.metrics,
     drivers: parsed.drivers,
     cadenceHours: parsed.cadence_hours,
@@ -140,7 +205,7 @@ export function mapIndicatorRow(row: unknown): IndexSignal {
     return {
       ...base,
       domain: 'pentagon',
-      indexType: parsed.index_type ?? inferPentagonType(parsed.slug),
+      indexType: parsed.index_type ?? inferPentagonType(normalizedSlug),
       sampleSize: parsed.sample_size,
       coverageLabel: parsed.coverage_label,
     };
@@ -149,16 +214,17 @@ export function mapIndicatorRow(row: unknown): IndexSignal {
   return {
     ...base,
     domain: 'psychology',
-    indicatorType: parsed.indicator_type ?? inferPsychologyType(parsed.slug),
+    indicatorType: normalizePsychologyType(parsed.indicator_type) ?? inferPsychologyType(normalizedSlug),
   };
 }
 
 export function mapSocialRow(row: unknown): SocialSignal {
   const parsed = socialRowSchema.parse(row);
+  const normalizedSlug = normalizeSocialSlug(parsed.slug);
 
   return {
     id: parsed.id,
-    slug: parsed.slug,
+    slug: normalizedSlug,
     domain: 'social',
     title: parsed.title,
     subtitle: parsed.subtitle,
@@ -170,7 +236,7 @@ export function mapSocialRow(row: unknown): SocialSignal {
     confidenceBand: parsed.confidence_band,
     freshnessNote: parsed.freshness_note,
     uncertaintyNote: parsed.uncertainty_note,
-    detailPath: parsed.detail_path ?? toSocialDetailPath(parsed.slug),
+    detailPath: toSocialDetailPath(normalizedSlug),
     metrics: parsed.metrics,
     drivers: parsed.drivers,
     cadenceHours: parsed.cadence_hours,

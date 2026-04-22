@@ -1,12 +1,13 @@
 import { useEffect, useState, startTransition } from 'react';
 
-import type { FeedLayoutItemRecord } from '@indicator/shared';
+import type { FeedLayoutItemRecord } from '../lib/shared-types';
 
 import { Badge } from '../components/Badge';
 import { DataTable } from '../components/DataTable';
 import { Panel } from '../components/Panel';
 import { fetchFeedLayout } from '../lib/api';
 import { formatJson } from '../lib/format';
+import { labelForFeedItemKind, labelForFeedTab } from '../lib/labels';
 
 export function FeedLayoutPage() {
   const [items, setItems] = useState<FeedLayoutItemRecord[]>([]);
@@ -21,21 +22,21 @@ export function FeedLayoutPage() {
 
   return (
     <Panel
-      title="Feed Layout"
-      subtitle="Card order, copy, visibility, and tab composition for Home, Pentagon, Psychology, and SNS Feed."
-      actions={<div className="hint-text">Persist changes through `admin-config-upsert` for audit-safe writes.</div>}
+      title="피드 구성"
+      subtitle="홈, 펜타곤, 심리, SNS 탭의 카드 순서와 문구, 노출 여부를 확인합니다."
+      actions={<div className="hint-text">변경 저장은 `admin-config-upsert` 경로를 통해 감사 로그와 함께 기록됩니다.</div>}
     >
       <DataTable
         rows={items}
         columns={[
           {
             key: 'tab',
-            header: 'Tab',
-            render: (row) => row.tabSlug,
+            header: '탭',
+            render: (row) => labelForFeedTab(row.tabSlug),
           },
           {
             key: 'item',
-            header: 'Card',
+            header: '항목',
             render: (row) => (
               <div>
                 <strong>{row.title}</strong>
@@ -44,26 +45,31 @@ export function FeedLayoutPage() {
             ),
           },
           {
+            key: 'kind',
+            header: '종류',
+            render: (row) => labelForFeedItemKind(row.itemKind),
+          },
+          {
             key: 'source',
-            header: 'Source ref',
-            render: (row) => row.sourceRef ?? 'Manual',
+            header: '소스',
+            render: (row) => row.sourceRef ?? '수동 편집',
           },
           {
             key: 'order',
-            header: 'Order',
+            header: '순서',
             render: (row) => String(row.orderIndex),
           },
           {
             key: 'visible',
-            header: 'Visible',
-            render: (row) => (row.isVisible ? <Badge tone="success">Visible</Badge> : <Badge tone="neutral">Hidden</Badge>),
+            header: '노출',
+            render: (row) => (row.isVisible ? <Badge tone="success">노출</Badge> : <Badge tone="neutral">숨김</Badge>),
           },
           {
             key: 'config',
-            header: 'Config',
+            header: '설정',
             render: (row) => (
               <details className="details-block">
-                <summary>View config</summary>
+                <summary>설정 보기</summary>
                 <pre>{formatJson(row.config)}</pre>
               </details>
             ),

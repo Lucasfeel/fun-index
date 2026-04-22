@@ -277,15 +277,51 @@ values
   ),
   (
     'sns_feed',
-    'sns:top-rollup',
+    'sns:trump',
     'sns_rollup',
-    'sns_feed_rollup',
-    'Top Rollup',
-    'Approved by operations',
-    'Latest approved social rollup for publication.',
+    'sns_trump_rollup',
+    '트럼프',
+    '정치 이벤트 반응',
+    '트럼프 관련 대화 흐름을 운영에서 직접 정리합니다.',
     10,
     true,
-    jsonb_build_object('review_required', true)
+    jsonb_build_object('review_required', true, 'editor_owned', true)
+  ),
+  (
+    'sns_feed',
+    'sns:elon',
+    'sns_rollup',
+    'sns_elon_rollup',
+    '일론',
+    '인물 발언 반응',
+    '일론 관련 대화와 밈 흐름을 운영에서 직접 조절합니다.',
+    20,
+    true,
+    jsonb_build_object('review_required', true, 'editor_owned', true)
+  ),
+  (
+    'sns_feed',
+    'sns:kr-stock-community',
+    'sns_rollup',
+    'sns_kr_stock_community_rollup',
+    '국내 주식 커뮤니티',
+    '테마주/수급 대화',
+    '국내 주식 커뮤니티 흐름을 운영에서 직접 정리합니다.',
+    30,
+    true,
+    jsonb_build_object('review_required', true, 'editor_owned', true)
+  ),
+  (
+    'sns_feed',
+    'sns:global-stock-community',
+    'sns_rollup',
+    'sns_global_stock_community_rollup',
+    '해외주식 커뮤니티',
+    '미국장/거시 해석',
+    '해외주식 커뮤니티 흐름을 운영에서 직접 정리합니다.',
+    40,
+    true,
+    jsonb_build_object('review_required', true, 'editor_owned', true)
   )
 on conflict (tab_slug, item_key) do update
 set

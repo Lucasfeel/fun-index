@@ -4,7 +4,7 @@ import { PageContainer, ScreenHeader, Section } from '../components/Page';
 import { SegmentedChips } from '../components/SegmentedChips';
 import { useSocialSignals } from '../lib/queries';
 
-type FilterValue = 'all' | '행동' | '거시' | '소비' | '자금 흐름';
+type FilterValue = 'all' | '트럼프' | '일론' | '국내 주식 커뮤니티' | '해외주식 커뮤니티';
 
 export function SnsFeedScreen() {
   const query = useSocialSignals();
@@ -21,17 +21,17 @@ export function SnsFeedScreen() {
       <ScreenHeader title="SNS 피드" />
 
       <Section
-        title="카테고리"
+        title="피드"
         action={
           <div className="filter-control">
             <SegmentedChips
               value={filter}
               options={[
                 { value: 'all', label: '전체' },
-                { value: '행동', label: '행동' },
-                { value: '거시', label: '거시' },
-                { value: '소비', label: '소비' },
-                { value: '자금 흐름', label: '자금 흐름' },
+                { value: '트럼프', label: '트럼프' },
+                { value: '일론', label: '일론' },
+                { value: '국내 주식 커뮤니티', label: '국내 커뮤' },
+                { value: '해외주식 커뮤니티', label: '해외 커뮤' },
               ]}
               onChange={(value) => {
                 startTransition(() => {

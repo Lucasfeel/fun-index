@@ -9,6 +9,7 @@ import { ReviewQueuePage } from './pages/ReviewQueuePage';
 import { RunsPage } from './pages/RunsPage';
 import { FeedLayoutPage } from './pages/FeedLayoutPage';
 import { ManualRerunPage } from './pages/ManualRerunPage';
+import { SnsControlPage } from './pages/SnsControlPage';
 
 export default function App() {
   return (
@@ -22,6 +23,7 @@ export default function App() {
           <Route path="/review-queue" element={<ReviewQueuePage />} />
           <Route path="/runs" element={<RunsPage />} />
           <Route path="/feed-layout" element={<FeedLayoutPage />} />
+          <Route path="/sns-control" element={<SnsControlPage />} />
           <Route path="/manual-rerun" element={<ManualRerunPage />} />
         </Routes>
       </Shell>

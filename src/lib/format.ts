@@ -102,15 +102,15 @@ export function getDomainEyebrow(item: SignalItem) {
   }
 
   if (item.domain === 'psychology') {
-    if (item.indicatorType === 'fear-greed') {
-      return '심리 / 공포·탐욕';
+    if (item.indicatorType === 'us-stock-fear-greed') {
+      return '심리 / 미국주식 공탐';
     }
 
-    if (item.indicatorType === 'positioning-heat') {
-      return '심리 / 포지셔닝';
+    if (item.indicatorType === 'crypto-fear-greed') {
+      return '심리 / 코인 공탐';
     }
 
-    return '심리 / 시장 폭';
+    return '심리 / 한국주식 공탐';
   }
 
   return 'SNS 피드 / 검토 완료';

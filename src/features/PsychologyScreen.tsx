@@ -8,16 +8,16 @@ import type { PsychologyIndicatorType } from '../lib/types';
 type FilterValue = 'all' | PsychologyIndicatorType;
 
 function getLabel(value: FilterValue) {
-  if (value === 'fear-greed') {
-    return '공포·탐욕';
+  if (value === 'us-stock-fear-greed') {
+    return '미국주식 공탐지수';
   }
 
-  if (value === 'positioning-heat') {
-    return '포지셔닝';
+  if (value === 'crypto-fear-greed') {
+    return '코인 공탐지수';
   }
 
-  if (value === 'breadth-stress') {
-    return '시장 폭';
+  if (value === 'kr-stock-fear-greed') {
+    return '한국주식 공탐지수';
   }
 
   return '전체';
@@ -44,9 +44,9 @@ export function PsychologyScreen() {
               value={filter}
               options={[
                 { value: 'all', label: '전체' },
-                { value: 'fear-greed', label: '공포·탐욕' },
-                { value: 'positioning-heat', label: '포지셔닝' },
-                { value: 'breadth-stress', label: '시장 폭' },
+                { value: 'us-stock-fear-greed', label: '미국주식' },
+                { value: 'crypto-fear-greed', label: '코인' },
+                { value: 'kr-stock-fear-greed', label: '한국주식' },
               ]}
               onChange={(value) => {
                 startTransition(() => {

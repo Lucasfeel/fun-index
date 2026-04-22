@@ -540,6 +540,23 @@ export async function publishOverride(
     });
   }
 
+  const payload = input.payload ?? {};
+  const content = {
+    title:
+      typeof payload.title === 'string' && payload.title.trim().length > 0
+        ? payload.title
+        : layoutResult.data.title,
+    subtitle:
+      typeof payload.subtitle === 'string' && payload.subtitle.trim().length > 0
+        ? payload.subtitle
+        : layoutResult.data.subtitle,
+    body:
+      typeof payload.body === 'string' && payload.body.trim().length > 0
+        ? payload.body
+        : layoutResult.data.body,
+    ...payload,
+  };
+
   const overrideInsert = await client
     .from('manual_overrides')
     .insert({
@@ -564,20 +581,15 @@ export async function publishOverride(
   await supersedeCurrentState(client, {
     tabSlug: input.tabSlug,
     itemKey: input.itemKey,
-    itemKind: layoutResult.data.item_kind,
-    sourceType: 'manual_override',
-    sourceId: overrideInsert.data.id,
-    sourceRunId: null,
-    layoutItemId: layoutResult.data.id,
-    overrideId: overrideInsert.data.id,
-    content: {
-      title: layoutResult.data.title,
-      subtitle: layoutResult.data.subtitle,
-      body: layoutResult.data.body,
-      override: input.payload,
-    },
-    publishedBy: input.actorUserId,
-  });
+      itemKind: layoutResult.data.item_kind,
+      sourceType: 'manual_override',
+      sourceId: overrideInsert.data.id,
+      sourceRunId: null,
+      layoutItemId: layoutResult.data.id,
+      overrideId: overrideInsert.data.id,
+      content,
+      publishedBy: input.actorUserId,
+    });
 
   const publishEvent = await client
     .from('publish_events')

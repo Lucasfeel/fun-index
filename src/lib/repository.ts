@@ -141,5 +141,5 @@ export async function fetchHomeSignals(): Promise<SignalItem[]> {
     fetchSocialSignals(),
   ]);
 
-  return sortByUpdatedAt<SignalItem>([...pentagon, ...psychology, ...social]).slice(0, 8);
+  return sortByUpdatedAt<SignalItem>([...pentagon, ...psychology, ...social]);
 }

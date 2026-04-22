@@ -24,14 +24,20 @@ verify_jwt = true
 [functions.publish-current-state]
 verify_jwt = true
 
+[functions.admin-auth-check]
+verify_jwt = false
+
+[functions.admin-sns-control]
+verify_jwt = false
+
 [functions.admin-rerun]
-verify_jwt = true
+verify_jwt = false
 
 [functions.admin-override-publish]
-verify_jwt = true
+verify_jwt = false
 
 [functions.admin-review-action]
-verify_jwt = true
+verify_jwt = false
 
 [functions.admin-config-upsert]
-verify_jwt = true
+verify_jwt = false

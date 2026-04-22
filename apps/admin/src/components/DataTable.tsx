@@ -12,7 +12,7 @@ interface DataTableProps<T> {
   emptyMessage?: string;
 }
 
-export function DataTable<T>({ columns, rows, emptyMessage = 'No records.' }: DataTableProps<T>) {
+export function DataTable<T>({ columns, rows, emptyMessage = '표시할 항목이 없습니다.' }: DataTableProps<T>) {
   if (rows.length === 0) {
     return <div className="empty-state">{emptyMessage}</div>;
   }

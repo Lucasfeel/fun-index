@@ -1,11 +1,17 @@
 import type {
+  AdminOverridePublishRequest,
+  AdminOverridePublishResponse,
   CollectionJobRecord,
   DashboardSnapshot,
   FeedLayoutItemRecord,
+  MetricTone,
   ProviderRecord,
   ReviewQueueItem,
   RunSummary,
-} from '@indicator/shared';
+  SnsAdminContentRecord,
+  SnsAdminItemRecord,
+  SnsAdminMetricRecord,
+} from './shared-types';
 
 import {
   demoDashboard,
@@ -14,7 +20,9 @@ import {
   demoProviders,
   demoReviewQueue,
   demoRuns,
+  demoSnsControlItems,
 } from './demoData';
+import { clearStoredAdminPassword, getStoredAdminPassword } from './adminAccess';
 import { hasLiveSupabaseConfig, supabase } from './supabase';
 
 function formatError(error: unknown) {
@@ -22,7 +30,228 @@ function formatError(error: unknown) {
     return error.message;
   }
 
-  return 'Unknown error';
+  return '알 수 없는 오류';
+}
+
+async function resolveFunctionErrorMessage(error: unknown, fallbackMessage: string) {
+  if (error && typeof error === 'object' && 'context' in error) {
+    const response = (error as { context?: Response }).context;
+    if (response instanceof Response) {
+      try {
+        const payload = (await response.clone().json()) as { message?: unknown };
+        if (typeof payload.message === 'string' && payload.message.trim().length > 0) {
+          return {
+            status: response.status,
+            message: payload.message,
+          };
+        }
+      } catch {
+        // no-op
+      }
+
+      try {
+        const text = (await response.clone().text()).trim();
+        if (text.length > 0) {
+          return {
+            status: response.status,
+            message: text,
+          };
+        }
+      } catch {
+        // no-op
+      }
+
+      return {
+        status: response.status,
+        message: fallbackMessage,
+      };
+    }
+  }
+
+  if (error instanceof Error) {
+    if (error.message === 'Failed to fetch') {
+      return {
+        status: null,
+        message: '관리자 서비스에 연결하지 못했습니다.',
+      };
+    }
+
+    if (error.message !== 'Edge Function returned a non-2xx status code') {
+      return {
+        status: null,
+        message: error.message,
+      };
+    }
+  }
+
+  return {
+    status: null,
+    message: fallbackMessage,
+  };
+}
+
+function cloneDemoSnsItem(item: SnsAdminItemRecord): SnsAdminItemRecord {
+  return {
+    ...item,
+    config: { ...item.config },
+    currentContent: {
+      ...item.currentContent,
+      metrics: item.currentContent.metrics.map((metric) => ({ ...metric })),
+      drivers: [...item.currentContent.drivers],
+      categories: [...item.currentContent.categories],
+      sourceItems: [...item.currentContent.sourceItems],
+    },
+  };
+}
+
+let demoSnsControlState = demoSnsControlItems.map(cloneDemoSnsItem);
+
+function toNullableString(value: unknown) {
+  return typeof value === 'string' && value.trim().length > 0 ? value : null;
+}
+
+function toStringArray(value: unknown) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((item) => (typeof item === 'string' ? item.trim() : String(item)))
+    .filter(Boolean);
+}
+
+function toMetricTone(value: unknown): MetricTone | null {
+  return value === 'cool' || value === 'neutral' || value === 'warm' ? value : null;
+}
+
+function toMetrics(value: unknown): SnsAdminMetricRecord[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((metric) => {
+      if (!metric || typeof metric !== 'object') {
+        return null;
+      }
+
+      const record = metric as Record<string, unknown>;
+      const label = toNullableString(record.label);
+      const metricValue = toNullableString(record.value);
+
+      if (!label || !metricValue) {
+        return null;
+      }
+
+      return {
+        label,
+        value: metricValue,
+        tone: toMetricTone(record.tone),
+      } satisfies SnsAdminMetricRecord;
+    })
+    .filter((metric): metric is SnsAdminMetricRecord => metric !== null);
+}
+
+function toNumber(value: unknown, fallback = 0) {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === 'string' && value.trim().length > 0) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  }
+
+  return fallback;
+}
+
+function toContentPayload(value: unknown) {
+  if (!value || typeof value !== 'object') {
+    return {} as Record<string, unknown>;
+  }
+
+  const record = value as Record<string, unknown>;
+  const override =
+    record.override && typeof record.override === 'object' ? (record.override as Record<string, unknown>) : null;
+
+  return override ? { ...record, ...override } : record;
+}
+
+function toSnsContentRecord(
+  content: unknown,
+  fallback: Pick<SnsAdminItemRecord, 'title' | 'subtitle' | 'body'>,
+): SnsAdminContentRecord {
+  const payload = toContentPayload(content);
+
+  return {
+    title: toNullableString(payload.title) ?? fallback.title,
+    subtitle: toNullableString(payload.subtitle) ?? fallback.subtitle,
+    summary: toNullableString(payload.summary) ?? toNullableString(payload.body) ?? fallback.body ?? '',
+    score: toNumber(payload.score ?? payload.valueNumeric, 0),
+    classification: toNullableString(payload.classification) ?? '승인됨',
+    change: toNumber(payload.change, 0),
+    metrics: toMetrics(payload.metrics),
+    drivers: toStringArray(payload.drivers),
+    categories: toStringArray(payload.categories),
+    sourceItems: toStringArray(payload.sourceItems),
+    approvalNote:
+      toNullableString(payload.approvalNote) ??
+      '검토를 통과한 SNS 항목만 사용자용 피드에 노출됩니다.',
+  };
+}
+
+function toFeedLayoutItemRecord(row: Record<string, unknown>): FeedLayoutItemRecord {
+  return {
+    id: String(row.id),
+    tabSlug: row.tab_slug as FeedLayoutItemRecord['tabSlug'],
+    itemKey: String(row.item_key),
+    itemKind: row.item_kind as FeedLayoutItemRecord['itemKind'],
+    sourceRef: (row.source_ref as string | null) ?? null,
+    title: String(row.title),
+    subtitle: (row.subtitle as string | null) ?? null,
+    body: (row.body as string | null) ?? null,
+    orderIndex: Number(row.order_index),
+    isVisible: Boolean(row.is_visible),
+    config: (row.config as Record<string, unknown>) ?? {},
+  };
+}
+
+const snsControlDefaults = demoSnsControlItems.map(cloneDemoSnsItem);
+
+function mergeSnsControlItems(
+  layoutItems: FeedLayoutItemRecord[],
+  currentState: Array<{ itemKey: string; content: unknown; publishedAt: string | null; sourceRunId: string | null }>,
+) {
+  const layoutByKey = new Map(layoutItems.map((item) => [item.itemKey, item]));
+  const stateByKey = new Map(currentState.map((item) => [item.itemKey, item]));
+
+  return snsControlDefaults
+    .map((defaultItem) => {
+      const layout = layoutByKey.get(defaultItem.itemKey);
+      const state = stateByKey.get(defaultItem.itemKey);
+      const base = layout
+        ? {
+            ...defaultItem,
+            layoutId: layout.id,
+            sourceRef: layout.sourceRef,
+            title: layout.title,
+            subtitle: layout.subtitle,
+            body: layout.body,
+            orderIndex: layout.orderIndex,
+            isVisible: layout.isVisible,
+            config: layout.config,
+          }
+        : defaultItem;
+
+      return {
+        ...base,
+        currentContent: state ? toSnsContentRecord(state.content, base) : base.currentContent,
+        publishedAt: state?.publishedAt ?? base.publishedAt,
+        sourceRunId: state?.sourceRunId ?? base.sourceRunId,
+        hasPublishedState: Boolean(state) || base.hasPublishedState,
+      } satisfies SnsAdminItemRecord;
+    })
+    .sort((left, right) => left.orderIndex - right.orderIndex);
 }
 
 function toProviderRecord(row: Record<string, unknown>): ProviderRecord {
@@ -284,6 +513,121 @@ export async function fetchFeedLayout(): Promise<FeedLayoutItemRecord[]> {
   }
 }
 
+export async function fetchSnsControlItems(): Promise<SnsAdminItemRecord[]> {
+  if (!hasLiveSupabaseConfig || !supabase) {
+    return demoSnsControlState.map(cloneDemoSnsItem);
+  }
+
+  try {
+    const payload = (await invokeAdminFunction('admin-sns-control', {})) as {
+      layout: Record<string, unknown>[];
+      state: Array<Record<string, unknown>>;
+    };
+
+    const layoutItems = (payload.layout ?? []).map((row) => toFeedLayoutItemRecord(row));
+    const currentState = (payload.state ?? []).map((row) => ({
+      itemKey: String(row.item_key),
+      content: row.content,
+      publishedAt: (row.published_at as string | null) ?? null,
+      sourceRunId: (row.source_run_id as string | null) ?? null,
+    }));
+
+    return mergeSnsControlItems(layoutItems, currentState);
+  } catch (error) {
+    console.warn('SNS control query fell back to demo data:', formatError(error));
+    return demoSnsControlState.map(cloneDemoSnsItem);
+  }
+}
+
+export async function upsertFeedLayoutItem(record: FeedLayoutItemRecord): Promise<FeedLayoutItemRecord> {
+  if (!hasLiveSupabaseConfig || !supabase) {
+    const existingIndex = demoSnsControlState.findIndex((item) => item.itemKey === record.itemKey);
+    const fallbackBase = existingIndex >= 0 ? demoSnsControlState[existingIndex] : snsControlDefaults[0];
+
+    if (!fallbackBase) {
+      throw new Error('데모 SNS 슬롯을 찾지 못했습니다.');
+    }
+
+    const base = existingIndex >= 0 ? demoSnsControlState[existingIndex] ?? fallbackBase : fallbackBase;
+
+    const next: SnsAdminItemRecord = {
+      ...base,
+      layoutId: base.layoutId ?? `demo-${record.itemKey}`,
+      tabSlug: 'sns_feed',
+      itemKey: record.itemKey,
+      itemKind: record.itemKind,
+      sourceRef: record.sourceRef,
+      title: record.title,
+      subtitle: record.subtitle,
+      body: record.body,
+      orderIndex: record.orderIndex,
+      isVisible: record.isVisible,
+      config: record.config,
+    };
+
+    if (existingIndex >= 0) {
+      demoSnsControlState[existingIndex] = cloneDemoSnsItem(next);
+    } else {
+      demoSnsControlState = [...demoSnsControlState, cloneDemoSnsItem(next)];
+    }
+
+    return {
+      ...record,
+      id: next.layoutId ?? `demo-${record.itemKey}`,
+    };
+  }
+
+  const data = await invokeAdminFunction('admin-config-upsert', {
+    entity: 'feed_layout',
+    record: {
+      tabSlug: record.tabSlug,
+      itemKey: record.itemKey,
+      itemKind: record.itemKind,
+      sourceRef: record.sourceRef,
+      title: record.title,
+      subtitle: record.subtitle,
+      body: record.body,
+      orderIndex: record.orderIndex,
+      isVisible: record.isVisible,
+      config: record.config,
+    },
+  });
+
+  return toFeedLayoutItemRecord(data as Record<string, unknown>);
+}
+
+export async function publishSnsOverride(
+  request: AdminOverridePublishRequest,
+): Promise<AdminOverridePublishResponse> {
+  if (!hasLiveSupabaseConfig || !supabase) {
+    const index = demoSnsControlState.findIndex((item) => item.itemKey === request.itemKey);
+
+    if (index < 0) {
+      throw new Error('데모 상태에서 SNS 슬롯을 찾지 못했습니다.');
+    }
+
+    const current = demoSnsControlState[index];
+    if (!current) {
+      throw new Error('SNS 슬롯 상태가 비어 있습니다.');
+    }
+
+    demoSnsControlState[index] = {
+      ...current,
+      currentContent: toSnsContentRecord(request.payload, current),
+      publishedAt: new Date().toISOString(),
+      sourceRunId: null,
+      hasPublishedState: true,
+    };
+
+    return {
+      overrideId: `demo-override-${request.itemKey}-${Date.now()}`,
+      publishEventId: `demo-publish-${request.itemKey}-${Date.now()}`,
+    };
+  }
+
+  return invokeAdminFunction('admin-override-publish', { ...request }) as Promise<AdminOverridePublishResponse>;
+}
+
 export async function invokeAdminFunction(functionName: string, body: Record<string, unknown>) {
   if (!hasLiveSupabaseConfig || !supabase) {
     return {
@@ -294,12 +638,44 @@ export async function invokeAdminFunction(functionName: string, body: Record<str
     };
   }
 
+  const headers = getStoredAdminPassword()
+    ? {
+        'x-admin-password': getStoredAdminPassword(),
+      }
+    : undefined;
+
   const result = await supabase.functions.invoke(functionName, {
     body,
+    headers,
   });
 
   if (result.error) {
-    throw result.error;
+    const failure = await resolveFunctionErrorMessage(result.error, '관리자 요청을 처리하지 못했습니다.');
+    if (failure.status === 401 || failure.status === 403) {
+      clearStoredAdminPassword();
+    }
+
+    throw new Error(failure.message);
+  }
+
+  return result.data;
+}
+
+export async function verifyAdminPassword(password: string) {
+  if (!hasLiveSupabaseConfig || !supabase) {
+    return { ok: true, demo: true };
+  }
+
+  const result = await supabase.functions.invoke('admin-auth-check', {
+    body: {},
+    headers: {
+      'x-admin-password': password,
+    },
+  });
+
+  if (result.error) {
+    const failure = await resolveFunctionErrorMessage(result.error, '관리자 비밀번호를 확인하지 못했습니다.');
+    throw new Error(failure.message);
   }
 
   return result.data;

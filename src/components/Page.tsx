@@ -19,6 +19,7 @@ interface DetailHeaderProps {
   title: string;
   subtitle?: string | undefined;
   fallbackPath: string;
+  action?: ReactNode;
 }
 
 interface SectionProps {
@@ -54,7 +55,7 @@ export function ScreenHeader({ eyebrow, title, description, aside }: ScreenHeade
   );
 }
 
-export function DetailHeader({ section, title, subtitle, fallbackPath }: DetailHeaderProps) {
+export function DetailHeader({ section, title, subtitle, fallbackPath, action }: DetailHeaderProps) {
   const navigate = useNavigate();
 
   function handleBack() {
@@ -77,6 +78,7 @@ export function DetailHeader({ section, title, subtitle, fallbackPath }: DetailH
         <h1 className="detail-header__title">{title}</h1>
         {subtitle ? <p className="detail-header__subtitle">{subtitle}</p> : null}
       </div>
+      {action ? <div className="detail-header__action">{action}</div> : null}
     </header>
   );
 }

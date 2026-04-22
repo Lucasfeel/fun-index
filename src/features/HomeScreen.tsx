@@ -1,5 +1,5 @@
 import { FeedCard, FeedSkeleton, StatePanel } from '../components/Feed';
-import { PageContainer, ScreenHeader } from '../components/Page';
+import { PageContainer } from '../components/Page';
 import { useHomeSignals } from '../lib/queries';
 
 export function HomeScreen() {
@@ -8,8 +8,6 @@ export function HomeScreen() {
 
   return (
     <PageContainer emphasis="hero">
-      <ScreenHeader title="재밌는 보조 지표" />
-
       {query.isLoading ? <FeedSkeleton count={5} /> : null}
 
       {!query.isLoading && query.isError && items.length === 0 ? (

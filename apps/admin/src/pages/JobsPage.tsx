@@ -1,12 +1,13 @@
 import { useEffect, useState, startTransition } from 'react';
 
-import type { CollectionJobRecord } from '@indicator/shared';
+import type { CollectionJobRecord } from '../lib/shared-types';
 
 import { Badge } from '../components/Badge';
 import { DataTable } from '../components/DataTable';
 import { Panel } from '../components/Panel';
 import { fetchJobs } from '../lib/api';
 import { formatDateTime } from '../lib/format';
+import { labelForPublishBehavior, labelForRunStatus } from '../lib/labels';
 
 export function JobsPage() {
   const [jobs, setJobs] = useState<CollectionJobRecord[]>([]);
@@ -21,16 +22,16 @@ export function JobsPage() {
 
   return (
     <Panel
-      title="Jobs"
-      subtitle="Hourly collection jobs, parser versioning, and publish behavior."
-      actions={<div className="hint-text">Cron deployment should reconcile from `collection_jobs.schedule_cron`.</div>}
+      title="수집 작업"
+      subtitle="작업 일정, 파서 버전, 게시 정책을 한눈에 확인합니다."
+      actions={<div className="hint-text">실제 크론 배포는 `collection_jobs.schedule_cron` 값을 기준으로 맞춥니다.</div>}
     >
       <DataTable
         rows={jobs}
         columns={[
           {
             key: 'job',
-            header: 'Job',
+            header: '작업',
             render: (row) => (
               <div>
                 <strong>{row.displayName}</strong>
@@ -40,36 +41,36 @@ export function JobsPage() {
           },
           {
             key: 'schedule',
-            header: 'Cron',
+            header: '주기',
             render: (row) => <code>{row.scheduleCron}</code>,
           },
           {
             key: 'parser',
-            header: 'Parser version',
+            header: '파서 버전',
             render: (row) => <code>{row.parserVersion}</code>,
           },
           {
             key: 'publish',
-            header: 'Publish behavior',
-            render: (row) => row.publishBehavior,
+            header: '게시 방식',
+            render: (row) => labelForPublishBehavior(row.publishBehavior),
           },
           {
             key: 'enabled',
-            header: 'State',
-            render: (row) => (row.isEnabled ? <Badge tone="success">Enabled</Badge> : <Badge tone="neutral">Paused</Badge>),
+            header: '활성 상태',
+            render: (row) => (row.isEnabled ? <Badge tone="success">활성</Badge> : <Badge tone="neutral">일시중지</Badge>),
           },
           {
             key: 'last',
-            header: 'Last status',
+            header: '최근 결과',
             render: (row) => (
               <Badge tone={row.lastRunStatus === 'failed' ? 'danger' : row.lastRunStatus === 'review_required' ? 'warning' : 'success'}>
-                {row.lastRunStatus ?? 'unknown'}
+                {labelForRunStatus(row.lastRunStatus)}
               </Badge>
             ),
           },
           {
             key: 'finished',
-            header: 'Last finished',
+            header: '최근 종료',
             render: (row) => formatDateTime(row.lastFinishedAt),
           },
         ]}
