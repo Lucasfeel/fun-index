@@ -1,10 +1,5 @@
-import { useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-
 import { DataFacts, DetailHero, DriverList, MetricGrid, StatePanel } from '../components/Feed';
-import { SignalEditorSheet } from '../components/SignalEditorSheet';
 import { NoticeStrip, PageContainer, DetailHeader, Section } from '../components/Page';
-import { canEditSignals } from '../lib/editor';
 import { getConfidenceLabel } from '../lib/format';
 import { usePentagonSignal, usePsychologySignal } from '../lib/queries';
 import type { IndicatorDomain, IndexSignal } from '../lib/types';
@@ -24,12 +19,6 @@ function getContextualNote(signal: IndexSignal) {
 export function IndicatorDetailScreen({ domain }: IndicatorDetailScreenProps) {
   const detailQuery = domain === 'pentagon' ? usePentagonSignal() : usePsychologySignal();
   const item = detailQuery.data;
-  const [editorOpen, setEditorOpen] = useState(false);
-  const queryClient = useQueryClient();
-
-  async function handleSaved() {
-    await queryClient.invalidateQueries({ queryKey: ['signals'] });
-  }
 
   return (
     <PageContainer>
@@ -38,13 +27,6 @@ export function IndicatorDetailScreen({ domain }: IndicatorDetailScreenProps) {
         title={item?.title ?? '시그널 상세'}
         subtitle={item?.subtitle}
         fallbackPath={domain === 'pentagon' ? '/pentagon' : '/psychology'}
-        action={
-          item && canEditSignals() ? (
-            <button type="button" className="button button--ghost" onClick={() => setEditorOpen(true)}>
-              편집
-            </button>
-          ) : null
-        }
       />
 
       {detailQuery.isLoading ? (
@@ -107,10 +89,6 @@ export function IndicatorDetailScreen({ domain }: IndicatorDetailScreenProps) {
             ) : null}
           </DataFacts>
         </>
-      ) : null}
-
-      {item && editorOpen ? (
-        <SignalEditorSheet item={item} onClose={() => setEditorOpen(false)} onSaved={handleSaved} />
       ) : null}
     </PageContainer>
   );

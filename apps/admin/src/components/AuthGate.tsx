@@ -47,19 +47,19 @@ export function AuthGate({ children }: AuthGateProps) {
   }
 
   if (loading) {
-    return <div className="auth-screen">관리자 화면을 준비하고 있습니다…</div>;
+    return <div className="auth-screen">관리자 화면을 준비하는 중입니다.</div>;
   }
 
   if (!unlocked) {
     return (
       <div className="auth-screen">
         <div className="auth-card">
-          <span className="topbar__eyebrow">관리자 비밀번호</span>
-          <h2>SNS 운영 화면에 들어가려면 관리자 비밀번호를 입력해 주세요.</h2>
+          <span className="auth-card__eyebrow">ADMIN</span>
+          <h2>관리자 비밀번호를 입력해 주세요.</h2>
           <p>
             {hasLiveSupabaseConfig
-              ? '입력한 비밀번호는 엣지 함수 검증 후 현재 브라우저 세션에만 유지됩니다.'
-              : '현재는 데모 모드입니다. 비밀번호를 입력하면 관리자 화면을 바로 미리 볼 수 있습니다.'}
+              ? '로그인 없이 비밀번호만 확인한 뒤 바로 편집 화면으로 들어갑니다.'
+              : '현재는 데모 모드입니다. 비밀번호를 입력하면 샘플 화면으로 바로 들어갑니다.'}
           </p>
           <input
             className="auth-card__input"
@@ -73,9 +73,7 @@ export function AuthGate({ children }: AuthGateProps) {
               }
             }}
           />
-          <button className="submit-button" onClick={() => void unlockAdmin()}>
-            입장하기
-          </button>
+          <button className="submit-button" onClick={() => void unlockAdmin()}>입장하기</button>
           {message ? <div className="notice notice--inline">{message}</div> : null}
         </div>
       </div>
@@ -86,7 +84,7 @@ export function AuthGate({ children }: AuthGateProps) {
     return (
       <>
         <div className="demo-banner">
-          데모 모드입니다. `VITE_SUPABASE_URL`과 `VITE_SUPABASE_ANON_KEY`가 없어 샘플 데이터로 동작합니다.
+          데모 모드입니다. Supabase 환경 변수가 없어 샘플 데이터로 동작합니다.
         </div>
         {children}
       </>
@@ -94,11 +92,11 @@ export function AuthGate({ children }: AuthGateProps) {
   }
 
   return (
-    <>
-      <div className="demo-banner demo-banner--live">
-        관리자 비밀번호 확인이 완료됐습니다. 권한 작업은 비밀번호 헤더와 엣지 함수 감사 로그를 통해 처리됩니다.
-      </div>
-      {children}
-    </>
+      <>
+        <div className="demo-banner demo-banner--live">
+          관리자 비밀번호 확인이 완료되었습니다.
+        </div>
+        {children}
+      </>
   );
 }

@@ -1,9 +1,7 @@
-import { useState, type ReactNode } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import type { ReactNode } from 'react';
 import clsx from 'clsx';
 import { Link } from 'react-router-dom';
 
-import { canEditSignals } from '../lib/editor';
 import type { FreshnessState, SignalItem } from '../lib/types';
 import {
   formatAbsoluteTime,
@@ -13,7 +11,6 @@ import {
   getMetricToneClass,
   getScoreTone,
 } from '../lib/format';
-import { SignalEditorSheet } from './SignalEditorSheet';
 
 interface StatePanelProps {
   title: string;
@@ -202,28 +199,12 @@ function getFeedStatement(item: SignalItem) {
 
 export function FeedCard({ item }: { item: SignalItem }) {
   const band = getGaugeBand(item);
-  const queryClient = useQueryClient();
-  const [editorOpen, setEditorOpen] = useState(false);
-
-  async function handleSaved() {
-    await queryClient.invalidateQueries({ queryKey: ['signals'] });
-  }
 
   return (
     <article className="feed-card">
-      <div className="feed-card__header">
-        <Link to={item.detailPath} className="feed-card__title-link">
-          <h2 className="feed-card__title">{item.title}</h2>
-        </Link>
-
-        {canEditSignals() ? (
-          <button type="button" className="button button--ghost button--small feed-card__edit" onClick={() => setEditorOpen(true)}>
-            편집
-          </button>
-        ) : null}
-      </div>
-
       <Link to={item.detailPath} className="feed-card__link">
+        <h2 className="feed-card__title">{item.title}</h2>
+
         <div className="feed-card__gauge-row">
           <SignalGauge item={item} />
 
@@ -235,10 +216,6 @@ export function FeedCard({ item }: { item: SignalItem }) {
           </div>
         </div>
       </Link>
-
-      {editorOpen ? (
-        <SignalEditorSheet item={item} onClose={() => setEditorOpen(false)} onSaved={handleSaved} />
-      ) : null}
     </article>
   );
 }

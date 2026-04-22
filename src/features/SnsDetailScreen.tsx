@@ -1,36 +1,14 @@
-import { useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-
 import { DataFacts, DetailHero, DriverList, MetricGrid, StatePanel } from '../components/Feed';
-import { SignalEditorSheet } from '../components/SignalEditorSheet';
 import { NoticeStrip, PageContainer, DetailHeader, Section } from '../components/Page';
-import { canEditSignals } from '../lib/editor';
 import { useSocialSignal } from '../lib/queries';
 
 export function SnsDetailScreen() {
   const detailQuery = useSocialSignal();
   const item = detailQuery.data;
-  const [editorOpen, setEditorOpen] = useState(false);
-  const queryClient = useQueryClient();
-
-  async function handleSaved() {
-    await queryClient.invalidateQueries({ queryKey: ['signals'] });
-  }
 
   return (
     <PageContainer>
-      <DetailHeader
-        section="SNS 피드 상세"
-        title={item?.title ?? 'SNS 시그널 상세'}
-        fallbackPath="/sns"
-        action={
-          item && canEditSignals() ? (
-            <button type="button" className="button button--ghost" onClick={() => setEditorOpen(true)}>
-              편집
-            </button>
-          ) : null
-        }
-      />
+      <DetailHeader section="SNS 피드 상세" title={item?.title ?? 'SNS 시그널 상세'} fallbackPath="/sns" />
 
       {detailQuery.isLoading ? (
         <StatePanel title="상세 정보를 불러오는 중이에요" description="SNS 항목과 요약 정보를 준비하고 있어요." />
@@ -85,10 +63,6 @@ export function SnsDetailScreen() {
             </div>
           </DataFacts>
         </>
-      ) : null}
-
-      {item && editorOpen ? (
-        <SignalEditorSheet item={item} onClose={() => setEditorOpen(false)} onSaved={handleSaved} />
       ) : null}
     </PageContainer>
   );
