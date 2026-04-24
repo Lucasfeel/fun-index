@@ -1,4 +1,5 @@
 import { PipelineError } from "./errors.ts";
+import { dispatchAlerts } from "../alerts.ts";
 import {
   getCurrentState,
   upsertCurrentState,
@@ -49,6 +50,15 @@ export async function publishCandidate(
     publishedRunId: point.run_id,
     blockedUntilReview: false,
   });
+
+  try {
+    await dispatchAlerts(client, { streamId: job.stream_id });
+  } catch (error) {
+    console.warn("Alert dispatch failed after publishing current state", {
+      streamId: job.stream_id,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
 
   return "published";
 }

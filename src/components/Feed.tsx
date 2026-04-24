@@ -1,6 +1,9 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
+import { Bell } from 'lucide-react';
 import clsx from 'clsx';
 
+import { AlertSettingsModal } from './AlertSettingsModal';
+import { useAlertSubscription } from '../lib/alertQueries';
 import type { FreshnessState, SignalItem } from '../lib/types';
 import {
   formatAbsoluteTime,
@@ -449,17 +452,39 @@ function getFeedStatement(item: SignalItem) {
   return item.classification;
 }
 
+function getAlertTabSlug(item: SignalItem) {
+  if (item.domain === 'social') {
+    return 'sns_feed' as const;
+  }
+
+  return item.domain;
+}
+
 export function FeedCard({ item }: { item: SignalItem }) {
+  const [isAlertOpen, setAlertOpen] = useState(false);
   const band = getGaugeBand(item);
   const title = getDisplayTitle(item);
   const statement = item.domain === 'psychology' ? undefined : getDisplayClassification(getFeedStatement(item));
+  const alert = useAlertSubscription(item.id);
+  const hasAlert = Boolean(alert.subscription);
 
   return (
     <article className="feed-card">
       <div className="feed-card__body">
         <div className="feed-card__title-row">
-          <h2 className="feed-card__title">{title}</h2>
-          <FeedHelp item={item} />
+          <div className="feed-card__title-group">
+            <h2 className="feed-card__title">{title}</h2>
+            <FeedHelp item={item} />
+          </div>
+          <button
+            type="button"
+            className={clsx('feed-card__alert-button', hasAlert && 'feed-card__alert-button--active')}
+            aria-label={`${title} 알림 설정`}
+            aria-pressed={hasAlert}
+            onClick={() => setAlertOpen(true)}
+          >
+            <Bell aria-hidden="true" />
+          </button>
         </div>
 
         <div className="feed-card__gauge-row">
@@ -476,6 +501,27 @@ export function FeedCard({ item }: { item: SignalItem }) {
           <HistoryList item={item} />
         </div>
       </div>
+
+      {isAlertOpen ? (
+        <AlertSettingsModal
+          key={`${item.id}-${alert.subscription?.thresholdStage ?? 'current'}`}
+          title={title}
+          score={item.score}
+          subscription={alert.subscription}
+          isWaiting={isWaitingSignal(item)}
+          isSaving={alert.isSaving}
+          error={alert.error instanceof Error ? alert.error : null}
+          onClose={() => setAlertOpen(false)}
+          onSave={(thresholdStage) =>
+            alert.save({
+              itemKey: item.id,
+              tabSlug: getAlertTabSlug(item),
+              signalName: title,
+              thresholdStage,
+            })
+          }
+        />
+      ) : null}
     </article>
   );
 }
