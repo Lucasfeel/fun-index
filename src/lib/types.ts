@@ -15,6 +15,16 @@ export interface FeedMetric {
   tone?: MetricTone | undefined;
 }
 
+export interface HistoricalComparison {
+  key: 'yesterday' | 'one_week' | 'one_month';
+  label: string;
+  score: number;
+  classification: string;
+  observedAt?: string | null | undefined;
+  source?: string | undefined;
+  isApproximate?: boolean | undefined;
+}
+
 export interface SignalBase {
   id: string;
   slug: string;
@@ -32,6 +42,7 @@ export interface SignalBase {
   detailPath: string;
   metrics: FeedMetric[];
   drivers: string[];
+  historicalComparisons?: HistoricalComparison[];
   cadenceHours: number;
 }
 

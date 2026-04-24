@@ -27,6 +27,7 @@ interface DetailHeroProps {
 interface GaugeBand {
   color: string;
   label: string;
+  arcLabel?: string;
 }
 
 const gaugeBands: GaugeBand[] = [
@@ -36,6 +37,8 @@ const gaugeBands: GaugeBand[] = [
   { color: '#A1CE2D', label: '높음' },
   { color: '#56B678', label: '매우 높음' },
 ];
+
+const gaugeArcLabels = ['EXTREME FEAR', 'FEAR', 'NEUTRAL', 'GREED', 'EXTREME GREED'];
 
 function clampScore(score: number) {
   return Math.min(100, Math.max(0, score));
@@ -125,44 +128,84 @@ function DeltaPill({ delta }: { delta: number }) {
 function SignalGauge({ item }: { item: SignalItem }) {
   const score = clampScore(item.score);
   const band = getGaugeBand(item);
-  const cx = 160;
-  const cy = 128;
-  const radius = 110;
-  const domeRadius = 54;
+  const cx = 180;
+  const cy = 174;
+  const radius = 136;
+  const baseRadius = 46;
   const needleAngle = -90 + score * 1.8;
-  const needleEnd = polarToCartesian(cx, cy, 90, needleAngle);
-  const segmentGap = 4;
+  const needleEnd = polarToCartesian(cx, cy, 108, needleAngle);
+  const segmentGap = 3;
   const segmentSweep = (180 - segmentGap * (gaugeBands.length - 1)) / gaugeBands.length;
+  const activeIndex = score === 100 ? gaugeBands.length - 1 : Math.floor(score / 20);
+  const tickValues = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
+  const tickLabels = [0, 25, 50, 75, 100];
 
   return (
     <div className="signal-gauge" aria-hidden="true">
-      <svg viewBox="0 0 320 182" className="signal-gauge__svg">
+      <svg viewBox="0 0 360 232" className="signal-gauge__svg">
         {gaugeBands.map((segment, index) => {
           const startAngle = -90 + index * (segmentSweep + segmentGap);
           const endAngle = startAngle + segmentSweep;
-          const isActive = segment.color === band.color;
+          const isActive = index === Math.min(activeIndex, gaugeBands.length - 1);
+          const labelAngle = startAngle + segmentSweep / 2;
+          const labelPoint = polarToCartesian(cx, cy, 126, labelAngle);
 
           return (
-            <path
-              key={segment.color}
-              d={describeArc(cx, cy, radius, startAngle, endAngle)}
-              fill="none"
-              stroke={segment.color}
-              strokeWidth="30"
-              strokeLinecap="butt"
-              strokeOpacity={isActive ? 0.52 : 0.2}
-            />
+            <g key={segment.color}>
+              <path
+                d={describeArc(cx, cy, radius, startAngle, endAngle)}
+                fill="none"
+                stroke={segment.color}
+                strokeWidth="48"
+                strokeLinecap="butt"
+                strokeOpacity={isActive ? 0.34 : 0.08}
+              />
+              {isActive ? (
+                <path
+                  d={describeArc(cx, cy, radius, startAngle, endAngle)}
+                  fill="none"
+                  stroke={segment.color}
+                  strokeWidth="2"
+                  strokeLinecap="butt"
+                  strokeOpacity="0.72"
+                />
+              ) : null}
+              <text
+                x={labelPoint.x}
+                y={labelPoint.y}
+                textAnchor="middle"
+                dominantBaseline="middle"
+                className="signal-gauge__arc-label"
+                transform={`rotate(${labelAngle * 0.62} ${labelPoint.x} ${labelPoint.y})`}
+              >
+                {gaugeArcLabels[index]}
+              </text>
+            </g>
           );
         })}
 
-        <path
-          d={describeHalfDome(cx, cy, domeRadius)}
-          fill={band.color}
-          fillOpacity="0.16"
-          stroke={band.color}
-          strokeOpacity="0.42"
-          strokeWidth="2"
-        />
+        {tickValues.map((value) => {
+          const tickPoint = polarToCartesian(cx, cy, 92, -90 + value * 1.8);
+          return <circle key={value} cx={tickPoint.x} cy={tickPoint.y} r="2.2" fill="#8B95A1" opacity="0.78" />;
+        })}
+
+        {tickLabels.map((value) => {
+          const labelPoint = polarToCartesian(cx, cy, 76, -90 + value * 1.8);
+          return (
+            <text
+              key={value}
+              x={labelPoint.x}
+              y={labelPoint.y}
+              textAnchor="middle"
+              dominantBaseline="middle"
+              className="signal-gauge__tick-label"
+            >
+              {value}
+            </text>
+          );
+        })}
+
+        <path d={describeHalfDome(cx, cy, baseRadius)} fill={band.color} fillOpacity="0.12" />
 
         <line
           x1={cx}
@@ -170,14 +213,14 @@ function SignalGauge({ item }: { item: SignalItem }) {
           x2={needleEnd.x}
           y2={needleEnd.y}
           stroke="#191F28"
-          strokeWidth="4.5"
+          strokeWidth="6"
           strokeLinecap="round"
         />
-        <circle cx={cx} cy={cy} r="8" fill="#FFFFFF" stroke="#191F28" strokeWidth="2" />
+        <circle cx={cx} cy={cy} r="4.5" fill="#FFFFFF" stroke="#191F28" strokeWidth="1.8" />
 
         <text
           x={cx}
-          y={cy - domeRadius / 2 + 2}
+          y={cy + 34}
           textAnchor="middle"
           dominantBaseline="middle"
           className="signal-gauge__score"
@@ -185,6 +228,36 @@ function SignalGauge({ item }: { item: SignalItem }) {
           {Math.round(score)}
         </text>
       </svg>
+    </div>
+  );
+}
+
+function HistoryList({ item }: { item: SignalItem }) {
+  const comparisons = item.historicalComparisons ?? [];
+
+  if (comparisons.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="feed-card__history" aria-label="과거 비교">
+      {comparisons.map((comparison) => {
+        const tone = getScoreTone(comparison.score);
+        return (
+          <div key={comparison.key} className="history-row">
+            <div className="history-row__copy">
+              <span className="history-row__label">
+                {comparison.label}
+                {comparison.isApproximate ? ' 근사' : ''}
+              </span>
+              <strong>{comparison.classification}</strong>
+            </div>
+            <span className={clsx('history-row__score', `history-row__score--${tone}`)}>
+              {Math.round(comparison.score)}
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -208,11 +281,14 @@ export function FeedCard({ item }: { item: SignalItem }) {
         <div className="feed-card__gauge-row">
           <SignalGauge item={item} />
 
-          <div className="feed-card__insight">
-            <strong className="feed-card__band" style={{ color: band.color }}>
-              {band.label}
-            </strong>
-            <p className="feed-card__statement">{getFeedStatement(item)}</p>
+          <div className="feed-card__side">
+            <div className="feed-card__insight">
+              <strong className="feed-card__band" style={{ color: band.color }}>
+                {band.label}
+              </strong>
+              <p className="feed-card__statement">{getFeedStatement(item)}</p>
+            </div>
+            <HistoryList item={item} />
           </div>
         </div>
       </Link>

@@ -40,6 +40,16 @@ const metricsSchema = z.preprocess(
 
 const stringArraySchema = z.preprocess(parseArrayLike, z.array(z.string()));
 
+const historicalComparisonSchema = z.object({
+  key: z.enum(['yesterday', 'one_week', 'one_month']),
+  label: z.string(),
+  score: z.coerce.number(),
+  classification: z.string(),
+  observedAt: z.string().nullable().optional(),
+  source: z.string().optional(),
+  isApproximate: z.boolean().optional(),
+});
+
 const indicatorRowSchema = z.object({
   id: z.string(),
   slug: z.string(),
@@ -57,6 +67,7 @@ const indicatorRowSchema = z.object({
   detail_path: z.string().optional(),
   metrics: metricsSchema.optional().default([]),
   drivers: stringArraySchema.optional().default([]),
+  historical_comparisons: z.array(historicalComparisonSchema).optional().default([]),
   cadence_hours: z.coerce.number().optional().default(1),
   sample_size: z.coerce.number().optional().default(0),
   coverage_label: z.string().optional().default('Aggregate sample'),
@@ -202,6 +213,7 @@ export function mapIndicatorRow(row: unknown): IndexSignal {
     detailPath: toIndicatorDetailPath(parsed.domain, normalizedSlug),
     metrics: parsed.metrics,
     drivers: parsed.drivers,
+    historicalComparisons: parsed.historical_comparisons,
     cadenceHours: parsed.cadence_hours,
   };
 

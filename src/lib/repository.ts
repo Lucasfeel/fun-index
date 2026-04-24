@@ -149,6 +149,7 @@ function toIndicatorRowFromCard(tab: 'pentagon' | 'psychology', card: PublicFeed
     detail_path: `/${tab}/${replaceSlug(card.itemKey)}`,
     metrics: Array.isArray(content.metrics) ? content.metrics : [],
     drivers: Array.isArray(content.drivers) ? content.drivers : [],
+    historical_comparisons: Array.isArray(content.historicalComparisons) ? content.historicalComparisons : [],
     cadence_hours: Number(content.cadenceHours ?? 1),
     sample_size: Number(content.sampleSize ?? 0),
     coverage_label: typeof content.coverageLabel === 'string' ? content.coverageLabel : 'Aggregate sample',

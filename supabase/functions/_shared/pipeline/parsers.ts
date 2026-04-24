@@ -83,6 +83,31 @@ function classifyFearGreed(value: number) {
   return "Extreme Greed";
 }
 
+function buildHistoricalComparison(
+  key: string,
+  label: string,
+  value: number | undefined,
+  classification?: string,
+): JsonObject | null {
+  if (value === undefined) {
+    return null;
+  }
+
+  const score = roundScore(value);
+  return {
+    key,
+    label,
+    score,
+    classification: classification ?? classifyFearGreed(score),
+    source: "source",
+    isApproximate: false,
+  };
+}
+
+function compactComparisons(items: Array<JsonObject | null>) {
+  return items.filter((item): item is JsonObject => item !== null);
+}
+
 function classifyPizzint(value: number, defconLevel?: number) {
   if (defconLevel) {
     return `DOUGHCON ${defconLevel}`;
@@ -313,6 +338,11 @@ function parseCnnFearGreed(payload: JsonObject): ParsedObservation {
   const score = roundScore(numericValue);
   const classification = firstString(latest?.rating, root?.rating, latest?.classification, payload.classification) ??
     classifyFearGreed(score);
+  const historicalComparisons = compactComparisons([
+    buildHistoricalComparison("yesterday", "어제", firstNumber(root?.previous_close)),
+    buildHistoricalComparison("one_week", "1주 전", firstNumber(root?.previous_1_week)),
+    buildHistoricalComparison("one_month", "1개월 전", firstNumber(root?.previous_1_month)),
+  ]);
 
   return {
     kind: "numeric",
@@ -325,10 +355,12 @@ function parseCnnFearGreed(payload: JsonObject): ParsedObservation {
       summary: "Tracks CNN's US stock Fear & Greed composite from the page-owned data payload.",
       source: "cnn",
       confidence: 0.86,
+      historicalComparisons,
       metrics: toJsonMetrics([
         { label: "Current", value: Math.round(score), tone: metricTone(score) },
         { label: "Previous close", value: firstNumber(root?.previous_close) ?? "N/A" },
         { label: "1 week ago", value: firstNumber(root?.previous_1_week) ?? "N/A" },
+        { label: "1 month ago", value: firstNumber(root?.previous_1_month) ?? "N/A" },
       ]),
       drivers: [
         "CNN composite value is parsed from the public market data endpoint referenced in the page HTML.",
@@ -344,6 +376,9 @@ function parseCoinMarketCap(payload: JsonObject): ParsedObservation {
   const currentIndex = asJsonObject(fearGreedIndexData?.currentIndex) ?? asJsonObject(payload.currentIndex);
   const data = asJsonObject(payload.data);
   const latest = latestArrayItem(data?.points) ?? latestArrayItem(data?.historical) ?? data;
+  const historical = asJsonObject(fearGreedIndexData?.historicalValues) ??
+    asJsonObject(fearGreedIndexData?.history) ??
+    asJsonObject(payload.historicalValues);
 
   const numericValue = firstNumber(
     currentIndex?.score,
@@ -362,6 +397,44 @@ function parseCoinMarketCap(payload: JsonObject): ParsedObservation {
   const score = roundScore(numericValue);
   const classification = firstString(currentIndex?.name, latest?.classification, latest?.rating, data?.classification) ??
     classifyFearGreed(score);
+  const historicalComparisons = compactComparisons([
+    buildHistoricalComparison(
+      "yesterday",
+      "어제",
+      firstNumber(
+        asJsonObject(historical?.yesterday)?.score,
+        asJsonObject(historical?.yesterday)?.value,
+        historical?.yesterday,
+        fearGreedIndexData?.yesterday,
+      ),
+    ),
+    buildHistoricalComparison(
+      "one_week",
+      "1주 전",
+      firstNumber(
+        asJsonObject(historical?.oneWeekAgo)?.score,
+        asJsonObject(historical?.oneWeekAgo)?.value,
+        asJsonObject(historical?.lastWeek)?.score,
+        asJsonObject(historical?.lastWeek)?.value,
+        historical?.oneWeekAgo,
+        historical?.lastWeek,
+        fearGreedIndexData?.oneWeekAgo,
+      ),
+    ),
+    buildHistoricalComparison(
+      "one_month",
+      "1개월 전",
+      firstNumber(
+        asJsonObject(historical?.oneMonthAgo)?.score,
+        asJsonObject(historical?.oneMonthAgo)?.value,
+        asJsonObject(historical?.lastMonth)?.score,
+        asJsonObject(historical?.lastMonth)?.value,
+        historical?.oneMonthAgo,
+        historical?.lastMonth,
+        fearGreedIndexData?.oneMonthAgo,
+      ),
+    ),
+  ]);
 
   return {
     kind: "numeric",
@@ -374,6 +447,7 @@ function parseCoinMarketCap(payload: JsonObject): ParsedObservation {
       summary: "Tracks CoinMarketCap's crypto Fear & Greed value from embedded page data.",
       source: "coinmarketcap",
       confidence: currentIndex ? 0.84 : 0.62,
+      historicalComparisons,
       metrics: toJsonMetrics([
         { label: "Current", value: Math.round(score), tone: metricTone(score) },
         { label: "Max", value: firstNumber(currentIndex?.maxScore) ?? 100 },

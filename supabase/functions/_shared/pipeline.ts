@@ -12,6 +12,10 @@ function asArray(value: unknown): unknown[] {
   return Array.isArray(value) ? value : [];
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
 function stringValue(value: unknown, fallback = '') {
   return typeof value === 'string' && value.trim().length > 0 ? value : fallback;
 }
@@ -32,6 +36,22 @@ function numberValue(value: unknown, fallback = 0) {
 function normalizeConfidence(value: unknown) {
   const numeric = numberValue(value, 0.72);
   return Math.max(0, Math.min(1, numeric));
+}
+
+function classifyScore(value: number) {
+  if (value < 25) {
+    return 'Extreme Fear';
+  }
+  if (value < 45) {
+    return 'Fear';
+  }
+  if (value < 55) {
+    return 'Neutral';
+  }
+  if (value < 75) {
+    return 'Greed';
+  }
+  return 'Extreme Greed';
 }
 
 function inferContentType(feedCardCode: unknown) {
@@ -60,9 +80,128 @@ function inferContentType(feedCardCode: unknown) {
   return {};
 }
 
+const historicalTargets = [
+  { key: 'yesterday', label: '어제', offsetMs: 24 * 60 * 60 * 1000 },
+  { key: 'one_week', label: '1주 전', offsetMs: 7 * 24 * 60 * 60 * 1000 },
+  { key: 'one_month', label: '1개월 전', offsetMs: 30 * 24 * 60 * 60 * 1000 },
+] as const;
+
+interface HistoricalPoint {
+  stream_id: string;
+  observed_at: string;
+  numeric_value: number | string | null;
+  normalized_payload?: unknown;
+}
+
+function normalizeHistoricalComparison(value: unknown) {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const key = stringValue(value.key);
+  const target = historicalTargets.find((item) => item.key === key);
+  const score = numberValue(value.score ?? value.valueNumeric ?? value.value, Number.NaN);
+  if (!target || !Number.isFinite(score)) {
+    return null;
+  }
+
+  return {
+    key: target.key,
+    label: stringValue(value.label, target.label),
+    score,
+    classification: stringValue(value.classification, classifyScore(score)),
+    observedAt: typeof value.observedAt === 'string' ? value.observedAt : null,
+    source: stringValue(value.source, 'source'),
+    isApproximate: value.isApproximate === true,
+  };
+}
+
+function getDirectHistoricalComparisons(summary: Record<string, unknown>) {
+  const byKey = new Map<string, ReturnType<typeof normalizeHistoricalComparison>>();
+  for (const item of asArray(summary.historicalComparisons)) {
+    const comparison = normalizeHistoricalComparison(item);
+    if (comparison) {
+      byKey.set(comparison.key, comparison);
+    }
+  }
+  return byKey;
+}
+
+function nearestHistoricalPoint(points: HistoricalPoint[], targetTime: number) {
+  let nearest: HistoricalPoint | null = null;
+  let nearestDiff = Number.POSITIVE_INFINITY;
+
+  for (const point of points) {
+    const observedTime = Date.parse(point.observed_at);
+    if (!Number.isFinite(observedTime)) {
+      continue;
+    }
+
+    const diff = Math.abs(observedTime - targetTime);
+    if (diff < nearestDiff) {
+      nearest = point;
+      nearestDiff = diff;
+    }
+  }
+
+  return nearest ? { point: nearest, diffMs: nearestDiff } : null;
+}
+
+function buildStoredHistoricalComparison(
+  target: typeof historicalTargets[number],
+  currentObservedAt: string,
+  points: HistoricalPoint[],
+) {
+  const currentTime = Date.parse(currentObservedAt);
+  if (!Number.isFinite(currentTime)) {
+    return null;
+  }
+
+  const nearest = nearestHistoricalPoint(points, currentTime - target.offsetMs);
+  if (!nearest) {
+    return null;
+  }
+
+  const score = numberValue(nearest.point.numeric_value, Number.NaN);
+  if (!Number.isFinite(score)) {
+    return null;
+  }
+
+  const normalizedPayload = asRecord(nearest.point.normalized_payload);
+  const summary = asRecord(normalizedPayload.summary);
+  const classification = stringValue(
+    normalizedPayload.classification,
+    stringValue(summary.classification, classifyScore(score)),
+  );
+
+  return {
+    key: target.key,
+    label: target.label,
+    score,
+    classification,
+    observedAt: nearest.point.observed_at,
+    source: 'stored',
+    isApproximate: nearest.diffMs > 6 * 60 * 60 * 1000,
+  };
+}
+
+function buildHistoricalComparisons(
+  summary: Record<string, unknown>,
+  stateRow: Record<string, unknown>,
+  points: HistoricalPoint[],
+) {
+  const directByKey = getDirectHistoricalComparisons(summary);
+  const observedAt = stringValue(stateRow.observed_at, stringValue(stateRow.published_at, new Date().toISOString()));
+
+  return historicalTargets
+    .map((target) => directByKey.get(target.key) ?? buildStoredHistoricalComparison(target, observedAt, points))
+    .filter((item): item is NonNullable<typeof item> => item !== null);
+}
+
 function buildIndicatorContent(
   layoutRow: Record<string, unknown>,
   stateRow: Record<string, unknown>,
+  historicalPoints: HistoricalPoint[],
 ) {
   const summary = asRecord(stateRow.summary);
   const score = numberValue(summary.score ?? summary.valueNumeric ?? stateRow.current_value, 0);
@@ -90,6 +229,7 @@ function buildIndicatorContent(
     cadenceHours: numberValue(summary.cadenceHours, 1),
     sampleSize: numberValue(summary.sampleSize, 0),
     coverageLabel: stringValue(summary.coverageLabel, 'Aggregate sample'),
+    historicalComparisons: buildHistoricalComparisons(summary, stateRow, historicalPoints),
     updatedAt: observedAt,
     observedAt,
     ...contentType,
@@ -135,6 +275,36 @@ async function buildAppPublicIndicatorFeed(client: SupabaseClient, tab: FeedTab)
   const currentByStreamId = new Map(
     (stateResult.data ?? []).map((row) => [String(row.stream_id), row as Record<string, unknown>]),
   );
+  const streamIds = (layoutResult.data ?? [])
+    .map((row) => String((row as Record<string, unknown>).stream_id))
+    .filter((streamId) => streamId.length > 0);
+  const historyByStreamId = new Map<string, HistoricalPoint[]>();
+
+  if (streamIds.length > 0) {
+    const lookbackStart = new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString();
+    const historyResult = await client
+      .schema('ops')
+      .from('indicator_points')
+      .select('stream_id, observed_at, numeric_value, normalized_payload')
+      .in('stream_id', streamIds)
+      .eq('quality_state', 'accepted')
+      .gte('observed_at', lookbackStart)
+      .order('observed_at', { ascending: true });
+
+    if (historyResult.error) {
+      console.warn('indicator history read failed; rendering current-only comparisons', {
+        error: historyResult.error.message,
+        tab,
+      });
+    } else {
+      for (const row of historyResult.data ?? []) {
+        const point = row as HistoricalPoint;
+        const currentPoints = historyByStreamId.get(point.stream_id) ?? [];
+        currentPoints.push(point);
+        historyByStreamId.set(point.stream_id, currentPoints);
+      }
+    }
+  }
 
   const cards = (layoutResult.data ?? [])
     .map((layoutRow) => {
@@ -150,7 +320,7 @@ async function buildAppPublicIndicatorFeed(client: SupabaseClient, tab: FeedTab)
         subtitle: typeof layout.subtitle === 'string' ? layout.subtitle : null,
         body: typeof layout.description_template === 'string' ? layout.description_template : null,
         kind: 'indicator_card',
-        content: buildIndicatorContent(layout, current),
+        content: buildIndicatorContent(layout, current, historyByStreamId.get(String(layout.stream_id)) ?? []),
         publishedAt: stringValue(current.published_at, stringValue(current.observed_at, new Date().toISOString())),
         freshnessDeadlineAt: null,
         sourceRunId: typeof current.last_run_id === 'string' ? current.last_run_id : null,

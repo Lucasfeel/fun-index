@@ -41,6 +41,7 @@ export function normalizeObservation(job: CollectionJobRow, parsed: ParsedObserv
     const coverageLabel = stringFromMeta(meta, "coverageLabel") ?? "Aggregate sample";
     const metrics = asJsonArray(meta.metrics);
     const drivers = asJsonArray(meta.drivers);
+    const historicalComparisons = asJsonArray(meta.historicalComparisons);
     const venueDataMissing = meta.venueDataMissing === true;
 
     return {
@@ -64,6 +65,7 @@ export function normalizeObservation(job: CollectionJobRow, parsed: ParsedObserv
         cadenceHours: numberFromMeta(meta, "cadenceHours") ?? 1,
         sampleSize,
         coverageLabel,
+        historicalComparisons,
         venueDataMissing,
         source: job.provider_config.provider_code,
       },
