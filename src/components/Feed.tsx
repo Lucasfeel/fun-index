@@ -48,6 +48,14 @@ function isWaitingSignal(item: SignalItem) {
   return item.classification === '대기 중';
 }
 
+function isLimitedVenueClassification(classification: string | undefined) {
+  return classification?.trim().toLowerCase() === 'limited venue data';
+}
+
+function getDisplayClassification(classification: string | undefined) {
+  return isLimitedVenueClassification(classification) ? undefined : classification;
+}
+
 function getGaugeBand(item: SignalItem) {
   if (isWaitingSignal(item)) {
     return {
@@ -217,7 +225,7 @@ function SignalGauge({ item }: { item: SignalItem }) {
                   <tspan
                     key={word}
                     x={labelPoint.x}
-                    dy={words.length === 1 ? 0 : wordIndex === 0 ? -18 : 36}
+                    dy={words.length === 1 ? 0 : wordIndex === 0 ? -16 : 32}
                   >
                     {word}
                   </tspan>
@@ -229,7 +237,7 @@ function SignalGauge({ item }: { item: SignalItem }) {
 
         {tickValues.map((value) => {
           const tickPoint = polarToCartesian(cx, cy, tickRadius, -90 + value * 1.8);
-          return <circle key={value} cx={tickPoint.x} cy={tickPoint.y} r="5" fill="#8B95A1" opacity="0.72" />;
+          return <circle key={value} cx={tickPoint.x} cy={tickPoint.y} r="4.4" fill="#8B95A1" opacity="0.58" />;
         })}
 
         {tickLabels.map((value) => {
@@ -277,14 +285,12 @@ function HistoryList({ item }: { item: SignalItem }) {
     <div className="feed-card__history" aria-label="과거 비교">
       {comparisons.map((comparison) => {
         const tone = getScoreTone(comparison.score);
+        const classification = getDisplayClassification(comparison.classification);
         return (
           <div key={comparison.key} className="history-row">
             <div className="history-row__copy">
-              <span className="history-row__label">
-                {comparison.label}
-                {comparison.isApproximate ? ' 근사' : ''}
-              </span>
-              <strong>{comparison.classification}</strong>
+              <span className="history-row__label">{comparison.label}</span>
+              {classification ? <strong>{classification}</strong> : null}
             </div>
             <span className={clsx('history-row__score', `history-row__score--${tone}`)}>
               {Math.round(comparison.score)}
@@ -306,6 +312,7 @@ function getFeedStatement(item: SignalItem) {
 
 export function FeedCard({ item }: { item: SignalItem }) {
   const band = getGaugeBand(item);
+  const statement = getDisplayClassification(getFeedStatement(item));
 
   return (
     <article className="feed-card">
@@ -319,7 +326,7 @@ export function FeedCard({ item }: { item: SignalItem }) {
               <strong className="feed-card__band" style={{ color: band.color }}>
                 {band.label}
               </strong>
-              <p className="feed-card__statement">{getFeedStatement(item)}</p>
+              {statement ? <p className="feed-card__statement">{statement}</p> : null}
             </div>
           </div>
 
@@ -343,7 +350,7 @@ export function DetailHero({ item, contextualNote }: DetailHeroProps) {
           <ScoreBubble score={item.score} />
           <div className="detail-hero__copy">
             <div className="detail-hero__classification">
-              <strong>{item.classification}</strong>
+              <strong>{getDisplayClassification(item.classification) ?? getGaugeBand(item).label}</strong>
               <DeltaPill delta={item.change} />
             </div>
             <p>{item.summary}</p>

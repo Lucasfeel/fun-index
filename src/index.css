@@ -370,28 +370,28 @@ a {
 }
 
 .signal-gauge__score {
-  fill: var(--text-primary);
-  font-size: 68px;
-  font-weight: 800;
+  fill: rgba(25, 31, 40, 0.94);
+  font-size: 64px;
+  font-weight: 700;
   letter-spacing: 0;
 }
 
 .signal-gauge__arc-label {
-  fill: rgba(25, 31, 40, 0.62);
-  font-size: 38px;
-  font-weight: 800;
+  fill: rgba(25, 31, 40, 0.5);
+  font-size: 34px;
+  font-weight: 650;
   letter-spacing: 0;
   pointer-events: none;
 }
 
 .signal-gauge__arc-label--active {
-  fill: rgba(25, 31, 40, 0.88);
+  fill: rgba(25, 31, 40, 0.76);
 }
 
 .signal-gauge__tick-label {
-  fill: rgba(25, 31, 40, 0.52);
-  font-size: 42px;
-  font-weight: 700;
+  fill: rgba(25, 31, 40, 0.44);
+  font-size: 38px;
+  font-weight: 600;
   letter-spacing: 0;
   pointer-events: none;
 }
@@ -434,7 +434,7 @@ a {
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
-  min-height: 58px;
+  min-height: 54px;
 }
 
 .history-row::before {
@@ -451,7 +451,7 @@ a {
   z-index: 1;
   min-width: 0;
   display: grid;
-  gap: 1px;
+  gap: 2px;
   background: var(--surface-strong);
   padding-right: 10px;
   justify-self: start;
@@ -460,6 +460,7 @@ a {
 .history-row__label {
   font-size: 12px;
   font-weight: 700;
+  line-height: 1.15;
   color: var(--text-tertiary);
 }
 
