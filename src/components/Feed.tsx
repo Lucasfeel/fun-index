@@ -44,6 +44,18 @@ const gaugeBands: GaugeBand[] = [
 
 const gaugeArcLabels = ['EXTREME FEAR', 'FEAR', 'NEUTRAL', 'GREED', 'EXTREME GREED'];
 
+const classificationLabelMap: Record<string, string> = {
+  'extreme fear': '극단적 공포',
+  fear: '공포',
+  neutral: '중립',
+  greed: '탐욕',
+  'extreme greed': '극단적 탐욕',
+  stable: '안정',
+  approved: '승인됨',
+  waiting: '대기 중',
+  'venue data unavailable': '장소 데이터 없음',
+};
+
 function clampScore(score: number) {
   return Math.min(100, Math.max(0, score));
 }
@@ -56,8 +68,57 @@ function isLimitedVenueClassification(classification: string | undefined) {
   return classification?.trim().toLowerCase() === 'limited venue data';
 }
 
+function normalizeDisplayLabel(value: string) {
+  return value.trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
 function getDisplayClassification(classification: string | undefined) {
-  return isLimitedVenueClassification(classification) ? undefined : classification;
+  if (!classification || isLimitedVenueClassification(classification)) {
+    return undefined;
+  }
+
+  const doughconMatch = classification.trim().match(/^doughcon\s*(\d+)$/i);
+  if (doughconMatch) {
+    return `도우콘 ${doughconMatch[1]}`;
+  }
+
+  return classificationLabelMap[normalizeDisplayLabel(classification)] ?? classification;
+}
+
+function getDisplayTitle(item: SignalItem) {
+  if (item.domain === 'pentagon') {
+    return item.indexType === 'pizza' ? '피자 지수' : '바 지수';
+  }
+
+  if (item.domain === 'psychology') {
+    if (item.indicatorType === 'us-stock-fear-greed') {
+      return '미국 주식 공포탐욕지수';
+    }
+
+    if (item.indicatorType === 'crypto-fear-greed') {
+      return '코인 공포탐욕지수';
+    }
+
+    return '한국 주식 공포탐욕지수';
+  }
+
+  if (item.slug.includes('trump')) {
+    return '트럼프';
+  }
+
+  if (item.slug.includes('elon')) {
+    return '일론 머스크';
+  }
+
+  if (item.slug.includes('kr-stock')) {
+    return '국내 주식 커뮤니티';
+  }
+
+  if (item.slug.includes('global-stock')) {
+    return '해외 주식 커뮤니티';
+  }
+
+  return item.title;
 }
 
 function formatCadenceHelp(cadenceHours: number) {
@@ -80,22 +141,22 @@ function getFeedHelpDescription(item: SignalItem) {
 
   if (item.domain === 'psychology') {
     if (item.indicatorType === 'us-stock-fear-greed') {
-      return 'CNN 방식의 7개 시장 지표를 모아 미국 주식시장의 공포와 탐욕을 0~100점으로 보여줍니다.';
+      return '씨엔엔 방식의 7개 시장 지표를 모아 미국 주식시장의 공포와 탐욕을 0~100점으로 보여줍니다.';
     }
 
     if (item.indicatorType === 'crypto-fear-greed') {
-      return 'CoinMarketCap의 코인 공포탐욕지수로 가상자산 시장 심리가 공포인지 탐욕인지 보여줍니다.';
+      return '코인마켓캡의 코인 공포탐욕지수로 가상자산 시장 심리가 공포인지 탐욕인지 보여줍니다.';
     }
 
     return '국내 주식시장 데이터를 모아 한국 주식시장의 공포와 탐욕을 0~100점으로 보여줍니다.';
   }
 
   if (item.slug.includes('trump')) {
-    return '트럼프 관련 발언과 SNS 언급 흐름을 모아 시장이 얼마나 민감하게 반응하는지 보여줍니다.';
+    return '트럼프 관련 발언과 소셜 언급 흐름을 모아 시장이 얼마나 민감하게 반응하는지 보여줍니다.';
   }
 
   if (item.slug.includes('elon')) {
-    return '일론 머스크 관련 발언과 SNS 반응을 모아 시장 관심도와 확산 강도를 보여줍니다.';
+    return '일론 머스크 관련 발언과 소셜 반응을 모아 시장 관심도와 확산 강도를 보여줍니다.';
   }
 
   if (item.slug.includes('kr-stock')) {
@@ -106,7 +167,7 @@ function getFeedHelpDescription(item: SignalItem) {
     return '해외 주식 커뮤니티의 토론량과 반복되는 키워드를 모아 글로벌 투자자 심리 흐름을 보여줍니다.';
   }
 
-  return `${item.title}의 최근 흐름을 모아 시장 반응을 간단히 보여줍니다.`;
+  return `${getDisplayTitle(item)}의 최근 흐름을 모아 시장 반응을 간단히 보여줍니다.`;
 }
 
 function getFeedHelpCopy(item: SignalItem): FeedHelpCopy {
@@ -336,11 +397,12 @@ function SignalGauge({ item }: { item: SignalItem }) {
 
 function FeedHelp({ item }: { item: SignalItem }) {
   const help = getFeedHelpCopy(item);
+  const title = getDisplayTitle(item);
   const tooltipId = `feed-help-${item.domain}-${item.id}`;
 
   return (
     <span className="feed-help">
-      <button type="button" className="feed-help__trigger" aria-label={`${item.title} 설명`} aria-describedby={tooltipId}>
+      <button type="button" className="feed-help__trigger" aria-label={`${title} 설명`} aria-describedby={tooltipId}>
         ?
       </button>
       <span id={tooltipId} role="tooltip" className="feed-help__panel">
@@ -389,13 +451,14 @@ function getFeedStatement(item: SignalItem) {
 
 export function FeedCard({ item }: { item: SignalItem }) {
   const band = getGaugeBand(item);
+  const title = getDisplayTitle(item);
   const statement = getDisplayClassification(getFeedStatement(item));
 
   return (
     <article className="feed-card">
       <div className="feed-card__body">
         <div className="feed-card__title-row">
-          <h2 className="feed-card__title">{item.title}</h2>
+          <h2 className="feed-card__title">{title}</h2>
           <FeedHelp item={item} />
         </div>
 
