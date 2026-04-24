@@ -452,7 +452,7 @@ function getFeedStatement(item: SignalItem) {
 export function FeedCard({ item }: { item: SignalItem }) {
   const band = getGaugeBand(item);
   const title = getDisplayTitle(item);
-  const statement = getDisplayClassification(getFeedStatement(item));
+  const statement = item.domain === 'psychology' ? undefined : getDisplayClassification(getFeedStatement(item));
 
   return (
     <article className="feed-card">
