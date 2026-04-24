@@ -290,11 +290,19 @@ a {
   min-width: 0;
 }
 
-.feed-card__link {
+.feed-card__body {
   display: flex;
   flex-direction: column;
   gap: 10px;
   padding: 22px 18px 26px;
+}
+
+.feed-card__title-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
 }
 
 .detail-hero__topline,
@@ -331,10 +339,84 @@ a {
 }
 
 .feed-card__title {
+  min-width: 0;
   margin: 0;
   font-size: 22px;
   line-height: 1.08;
   letter-spacing: -0.04em;
+}
+
+.feed-help {
+  position: static;
+  z-index: 5;
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
+.feed-help__trigger {
+  width: 22px;
+  height: 22px;
+  display: inline-grid;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: #b7bfca;
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0;
+  cursor: help;
+}
+
+.feed-help__trigger:focus-visible {
+  outline: 3px solid rgba(64, 124, 255, 0.18);
+  outline-offset: 2px;
+}
+
+.feed-help__panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  width: min(300px, calc(100vw - 48px));
+  display: grid;
+  gap: 6px;
+  padding: 13px 15px;
+  border-radius: 10px;
+  background: rgba(20, 22, 28, 0.96);
+  color: #fff;
+  box-shadow: 0 18px 42px rgba(25, 31, 40, 0.2);
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.42;
+  letter-spacing: -0.02em;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-4px);
+  visibility: hidden;
+  transition:
+    opacity 140ms ease,
+    transform 140ms ease,
+    visibility 140ms ease;
+}
+
+.feed-help__panel::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  background: inherit;
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.feed-help:hover .feed-help__panel,
+.feed-help:focus-within .feed-help__panel {
+  opacity: 1;
+  transform: translateY(0);
+  visibility: visible;
 }
 
 .feed-card__gauge-row {
@@ -1028,7 +1110,7 @@ a {
     font-size: 19px;
   }
 
-  .feed-card__link {
+  .feed-card__body {
     gap: 12px;
     padding: 14px 12px 24px;
   }

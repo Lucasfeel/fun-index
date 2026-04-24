@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react';
 import clsx from 'clsx';
-import { Link } from 'react-router-dom';
 
 import type { FreshnessState, SignalItem } from '../lib/types';
 import {
@@ -30,6 +29,11 @@ interface GaugeBand {
   arcLabel?: string;
 }
 
+interface FeedHelpCopy {
+  description: string;
+  cadence: string;
+}
+
 const gaugeBands: GaugeBand[] = [
   { color: '#D73C38', label: '매우 낮음' },
   { color: '#EC891C', label: '낮음' },
@@ -54,6 +58,62 @@ function isLimitedVenueClassification(classification: string | undefined) {
 
 function getDisplayClassification(classification: string | undefined) {
   return isLimitedVenueClassification(classification) ? undefined : classification;
+}
+
+function formatCadenceHelp(cadenceHours: number) {
+  if (!Number.isFinite(cadenceHours) || cadenceHours <= 1) {
+    return '1시간마다 업데이트됩니다.';
+  }
+
+  const roundedHours = Math.round(cadenceHours);
+  return `${roundedHours}시간마다 업데이트됩니다.`;
+}
+
+function getFeedHelpDescription(item: SignalItem) {
+  if (item.domain === 'pentagon') {
+    if (item.indexType === 'pizza') {
+      return '국제정세가 불안해지는 일이 발생하면 펜타곤 근처의 피자 주문량이 늘어나 피자인덱스가 증가합니다.';
+    }
+
+    return '펜타곤 주변 바가 평소보다 조용해지면 야간 업무가 늘어난 신호로 보고 바지수가 낮아집니다.';
+  }
+
+  if (item.domain === 'psychology') {
+    if (item.indicatorType === 'us-stock-fear-greed') {
+      return 'CNN 방식의 7개 시장 지표를 모아 미국 주식시장의 공포와 탐욕을 0~100점으로 보여줍니다.';
+    }
+
+    if (item.indicatorType === 'crypto-fear-greed') {
+      return 'CoinMarketCap의 코인 공포탐욕지수로 가상자산 시장 심리가 공포인지 탐욕인지 보여줍니다.';
+    }
+
+    return '국내 주식시장 데이터를 모아 한국 주식시장의 공포와 탐욕을 0~100점으로 보여줍니다.';
+  }
+
+  if (item.slug.includes('trump')) {
+    return '트럼프 관련 발언과 SNS 언급 흐름을 모아 시장이 얼마나 민감하게 반응하는지 보여줍니다.';
+  }
+
+  if (item.slug.includes('elon')) {
+    return '일론 머스크 관련 발언과 SNS 반응을 모아 시장 관심도와 확산 강도를 보여줍니다.';
+  }
+
+  if (item.slug.includes('kr-stock')) {
+    return '국내 주식 커뮤니티의 토론량과 반복되는 키워드를 모아 개인투자자 관심 흐름을 보여줍니다.';
+  }
+
+  if (item.slug.includes('global-stock')) {
+    return '해외 주식 커뮤니티의 토론량과 반복되는 키워드를 모아 글로벌 투자자 심리 흐름을 보여줍니다.';
+  }
+
+  return `${item.title}의 최근 흐름을 모아 시장 반응을 간단히 보여줍니다.`;
+}
+
+function getFeedHelpCopy(item: SignalItem): FeedHelpCopy {
+  return {
+    description: getFeedHelpDescription(item),
+    cadence: formatCadenceHelp(item.cadenceHours),
+  };
 }
 
 function getGaugeBand(item: SignalItem) {
@@ -274,6 +334,23 @@ function SignalGauge({ item }: { item: SignalItem }) {
   );
 }
 
+function FeedHelp({ item }: { item: SignalItem }) {
+  const help = getFeedHelpCopy(item);
+  const tooltipId = `feed-help-${item.domain}-${item.id}`;
+
+  return (
+    <span className="feed-help">
+      <button type="button" className="feed-help__trigger" aria-label={`${item.title} 설명`} aria-describedby={tooltipId}>
+        ?
+      </button>
+      <span id={tooltipId} role="tooltip" className="feed-help__panel">
+        <span>{help.description}</span>
+        <span>{help.cadence}</span>
+      </span>
+    </span>
+  );
+}
+
 function HistoryList({ item }: { item: SignalItem }) {
   const comparisons = item.historicalComparisons ?? [];
 
@@ -316,8 +393,11 @@ export function FeedCard({ item }: { item: SignalItem }) {
 
   return (
     <article className="feed-card">
-      <Link to={item.detailPath} className="feed-card__link">
-        <h2 className="feed-card__title">{item.title}</h2>
+      <div className="feed-card__body">
+        <div className="feed-card__title-row">
+          <h2 className="feed-card__title">{item.title}</h2>
+          <FeedHelp item={item} />
+        </div>
 
         <div className="feed-card__gauge-row">
           <div className="feed-card__gauge-stack">
@@ -332,7 +412,7 @@ export function FeedCard({ item }: { item: SignalItem }) {
 
           <HistoryList item={item} />
         </div>
-      </Link>
+      </div>
     </article>
   );
 }

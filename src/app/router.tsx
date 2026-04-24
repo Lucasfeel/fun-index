@@ -1,5 +1,5 @@
 import { Suspense, lazy, type ReactNode } from 'react';
-import { createHashRouter } from 'react-router-dom';
+import { Navigate, createHashRouter } from 'react-router-dom';
 import { AppShell } from '../components/AppShell';
 
 const HomeScreen = lazy(async () => {
@@ -20,16 +20,6 @@ const PsychologyScreen = lazy(async () => {
 const SnsFeedScreen = lazy(async () => {
   const module = await import('../features/SnsFeedScreen');
   return { default: module.SnsFeedScreen };
-});
-
-const IndicatorDetailScreen = lazy(async () => {
-  const module = await import('../features/IndicatorDetailScreen');
-  return { default: module.IndicatorDetailScreen };
-});
-
-const SnsDetailScreen = lazy(async () => {
-  const module = await import('../features/SnsDetailScreen');
-  return { default: module.SnsDetailScreen };
 });
 
 function RouteFallback() {
@@ -64,7 +54,7 @@ export const router = createHashRouter([
       },
       {
         path: 'pentagon/:slug',
-        element: withSuspense(<IndicatorDetailScreen domain="pentagon" />),
+        element: <Navigate to="/pentagon" replace />,
       },
       {
         path: 'psychology',
@@ -72,7 +62,7 @@ export const router = createHashRouter([
       },
       {
         path: 'psychology/:slug',
-        element: withSuspense(<IndicatorDetailScreen domain="psychology" />),
+        element: <Navigate to="/psychology" replace />,
       },
       {
         path: 'sns',
@@ -80,7 +70,7 @@ export const router = createHashRouter([
       },
       {
         path: 'sns/:slug',
-        element: withSuspense(<SnsDetailScreen />),
+        element: <Navigate to="/sns" replace />,
       },
     ],
   },
