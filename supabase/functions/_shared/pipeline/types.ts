@@ -17,6 +17,7 @@ export type ProviderFamily =
   | "pizzint"
   | "cnn_fear_greed"
   | "cmc_fear_greed"
+  | "kr_stock_fear_greed"
   | "sns_rollup";
 
 export interface ProviderConfigRow {

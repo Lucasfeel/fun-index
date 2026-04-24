@@ -4,6 +4,141 @@ import { errorResponse } from './http.ts';
 
 type FeedTab = 'home' | 'pentagon' | 'psychology' | 'sns_feed';
 
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function asArray(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [];
+}
+
+function stringValue(value: unknown, fallback = '') {
+  return typeof value === 'string' && value.trim().length > 0 ? value : fallback;
+}
+
+function numberValue(value: unknown, fallback = 0) {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === 'string' && value.trim().length > 0) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  }
+
+  return fallback;
+}
+
+function normalizeConfidence(value: unknown) {
+  const numeric = numberValue(value, 0.72);
+  return Math.max(0, Math.min(1, numeric));
+}
+
+function buildIndicatorContent(
+  layoutRow: Record<string, unknown>,
+  stateRow: Record<string, unknown>,
+) {
+  const summary = asRecord(stateRow.summary);
+  const score = numberValue(summary.score ?? summary.valueNumeric ?? stateRow.current_value, 0);
+  const summaryText = stringValue(
+    summary.summary ?? summary.description,
+    stringValue(layoutRow.description_template, ''),
+  );
+
+  return {
+    title: stringValue(summary.title, stringValue(layoutRow.title, stringValue(layoutRow.feed_card_code, 'Indicator'))),
+    subtitle: stringValue(summary.subtitle, stringValue(layoutRow.subtitle, '')),
+    summary: summaryText,
+    body: summaryText,
+    score,
+    valueNumeric: score,
+    classification: stringValue(summary.classification, 'stable'),
+    change: numberValue(summary.change, 0),
+    confidence: normalizeConfidence(summary.confidence),
+    metrics: asArray(summary.metrics),
+    drivers: asArray(summary.drivers),
+    freshnessNote: typeof summary.freshnessNote === 'string' ? summary.freshnessNote : undefined,
+    uncertaintyNote: typeof summary.uncertaintyNote === 'string' ? summary.uncertaintyNote : undefined,
+    cadenceHours: numberValue(summary.cadenceHours, 1),
+    sampleSize: numberValue(summary.sampleSize, 0),
+    coverageLabel: stringValue(summary.coverageLabel, 'Aggregate sample'),
+    observedAt: stateRow.observed_at,
+    sourceRunId: stateRow.last_run_id,
+    payload: {
+      streamId: stateRow.stream_id,
+      publishedRunId: stateRow.published_run_id,
+      source: summary.source ?? null,
+    },
+  };
+}
+
+async function buildAppPublicIndicatorFeed(client: SupabaseClient, tab: FeedTab) {
+  if (tab === 'sns_feed') {
+    return null;
+  }
+
+  const [layoutResult, stateResult] = await Promise.all([
+    client
+      .schema('app_public')
+      .from('tab_feed_configs')
+      .select('id, tab_code, stream_id, feed_card_code, title, subtitle, description_template, sort_order, config')
+      .eq('tab_code', tab)
+      .eq('is_enabled', true)
+      .order('sort_order', { ascending: true }),
+    client
+      .schema('app_public')
+      .from('indicator_current_state')
+      .select('stream_id, current_value, observed_at, summary, publish_state, last_run_id, published_run_id, published_at, blocked_until_review')
+      .eq('publish_state', 'published')
+      .eq('blocked_until_review', false),
+  ]);
+
+  if (layoutResult.error || stateResult.error) {
+    console.warn('app_public feed read failed; falling back to public.feed_current_state', {
+      layoutError: layoutResult.error?.message,
+      stateError: stateResult.error?.message,
+      tab,
+    });
+    return null;
+  }
+
+  const currentByStreamId = new Map(
+    (stateResult.data ?? []).map((row) => [String(row.stream_id), row as Record<string, unknown>]),
+  );
+
+  const cards = (layoutResult.data ?? [])
+    .map((layoutRow) => {
+      const layout = layoutRow as Record<string, unknown>;
+      const current = currentByStreamId.get(String(layout.stream_id));
+      if (!current) {
+        return null;
+      }
+
+      return {
+        itemKey: stringValue(layout.feed_card_code, String(layout.stream_id)),
+        title: stringValue(layout.title, stringValue(layout.feed_card_code, 'Indicator')),
+        subtitle: typeof layout.subtitle === 'string' ? layout.subtitle : null,
+        body: typeof layout.description_template === 'string' ? layout.description_template : null,
+        kind: 'indicator_card',
+        content: buildIndicatorContent(layout, current),
+        publishedAt: stringValue(current.published_at, stringValue(current.observed_at, new Date().toISOString())),
+        freshnessDeadlineAt: null,
+        sourceRunId: typeof current.last_run_id === 'string' ? current.last_run_id : null,
+      };
+    })
+    .filter((card) => card !== null);
+
+  if (cards.length === 0) {
+    return null;
+  }
+
+  return {
+    tab,
+    generatedAt: new Date().toISOString(),
+    cards,
+  };
+}
+
 export async function logAuditEvent(
   client: SupabaseClient,
   input: {
@@ -38,6 +173,11 @@ export async function logAuditEvent(
 }
 
 export async function buildPublicFeed(client: SupabaseClient, tab: FeedTab) {
+  const appPublicPayload = await buildAppPublicIndicatorFeed(client, tab);
+  if (appPublicPayload) {
+    return appPublicPayload;
+  }
+
   const [layoutResult, stateResult] = await Promise.all([
     client
       .from('feed_layout_items')

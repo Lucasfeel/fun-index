@@ -13,6 +13,10 @@ function asJsonObject(value: unknown): JsonObject {
   return {};
 }
 
+function hasVenueDataMissing(value: unknown) {
+  return asJsonObject(value).venueDataMissing === true;
+}
+
 function contractBounds(job: CollectionJobRow): { min: number | null; max: number | null } {
   const contract = asJsonObject(job.provider_config.metric_contract);
   const bounds = asJsonObject(contract.bounds);
@@ -87,6 +91,17 @@ export function evaluateQuality(
   if (currentState && currentState.blocked_until_review) {
     flags.push("STREAM_LOCKED");
     reasons.push("Stream is currently blocked pending review");
+    if (state === "accepted") {
+      state = "flagged";
+    }
+    severity = severity === "critical" ? "critical" : "warning";
+    requiresReview = true;
+  }
+
+  const candidateMeta = asJsonObject(candidate.normalizedPayload.meta);
+  if (hasVenueDataMissing(candidateMeta) && hasVenueDataMissing(currentState?.summary)) {
+    flags.push("VENUE_DATA_MISSING_REPEATED");
+    reasons.push("PizzINT nightlife venue data has been missing for consecutive accepted observations");
     if (state === "accepted") {
       state = "flagged";
     }
