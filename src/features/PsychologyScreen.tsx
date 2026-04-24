@@ -33,7 +33,7 @@ export function PsychologyScreen() {
       : (query.data ?? []).filter((item) => item.indicatorType === deferredFilter);
 
   return (
-    <PageContainer>
+    <PageContainer width="feed">
       <ScreenHeader title="심리" />
 
       <Section

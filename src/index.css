@@ -88,6 +88,10 @@ a {
   gap: 16px;
 }
 
+.page--feed .page__content {
+  width: min(100%, 940px);
+}
+
 .screen-header,
 .detail-header {
   display: flex;
@@ -255,7 +259,7 @@ a {
 .feed-card {
   border-radius: 28px;
   content-visibility: auto;
-  contain-intrinsic-size: 220px;
+  contain-intrinsic-size: 360px;
   transition:
     transform 180ms ease,
     box-shadow 180ms ease,
@@ -284,8 +288,8 @@ a {
 .feed-card__link {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 10px 22px 24px;
+  gap: 16px;
+  padding: 20px 24px 28px;
 }
 
 .detail-hero__topline,
@@ -323,22 +327,23 @@ a {
 
 .feed-card__title {
   margin: 0;
-  font-size: 21px;
+  font-size: 22px;
   line-height: 1.08;
   letter-spacing: -0.04em;
 }
 
 .feed-card__gauge-row {
   display: grid;
-  grid-template-columns: minmax(240px, 1fr) minmax(150px, 0.72fr);
-  gap: 12px 18px;
-  align-items: stretch;
+  grid-template-columns: minmax(0, 1.48fr) minmax(220px, 0.72fr);
+  gap: 20px 28px;
+  align-items: center;
 }
 
 .signal-gauge {
-  width: 100%;
+  justify-self: center;
+  width: min(100%, 680px);
   max-width: 100%;
-  margin-top: -4px;
+  margin: -8px 0 -2px;
 }
 
 .signal-gauge__svg {
@@ -350,22 +355,26 @@ a {
 
 .signal-gauge__score {
   fill: var(--text-primary);
-  font-size: 34px;
+  font-size: 72px;
   font-weight: 800;
   letter-spacing: 0;
 }
 
 .signal-gauge__arc-label {
   fill: rgba(25, 31, 40, 0.62);
-  font-size: 10px;
+  font-size: 38px;
   font-weight: 800;
   letter-spacing: 0;
   pointer-events: none;
 }
 
+.signal-gauge__arc-label--active {
+  fill: rgba(25, 31, 40, 0.88);
+}
+
 .signal-gauge__tick-label {
   fill: rgba(25, 31, 40, 0.52);
-  font-size: 15px;
+  font-size: 42px;
   font-weight: 700;
   letter-spacing: 0;
   pointer-events: none;
@@ -376,7 +385,7 @@ a {
   min-width: 0;
   flex-direction: column;
   justify-content: center;
-  gap: 16px;
+  gap: 22px;
 }
 
 .feed-card__insight {
@@ -402,7 +411,7 @@ a {
 
 .feed-card__history {
   display: grid;
-  gap: 10px;
+  gap: 0;
 }
 
 .history-row {
@@ -410,6 +419,8 @@ a {
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
+  min-height: 58px;
+  border-top: 1px dashed var(--border-soft);
 }
 
 .history-row__copy {
@@ -986,6 +997,11 @@ a {
     font-size: 19px;
   }
 
+  .feed-card__link {
+    gap: 12px;
+    padding: 12px 22px 24px;
+  }
+
   .feed-card__header {
     flex-direction: column;
     align-items: stretch;
@@ -993,12 +1009,17 @@ a {
 
   .feed-card__gauge-row {
     grid-template-columns: 1fr;
-    gap: 6px;
+    gap: 4px;
   }
 
   .signal-gauge {
     width: 100%;
-    max-width: 320px;
+    max-width: 100%;
+    margin: -2px 0 -8px;
+  }
+
+  .feed-card__side {
+    gap: 16px;
   }
 
   .detail-hero__topline,
@@ -1026,5 +1047,19 @@ a {
   .editor-sheet__actions {
     flex-direction: column;
     align-items: stretch;
+  }
+}
+
+@media (min-width: 721px) {
+  .page {
+    padding-bottom: calc(24px + max(var(--app-safe-bottom), env(safe-area-inset-bottom), 0px));
+  }
+
+  .tab-bar {
+    position: static;
+    width: min(100%, 540px);
+    margin: 0 auto 20px;
+    padding: 0 12px 12px;
+    transform: none;
   }
 }

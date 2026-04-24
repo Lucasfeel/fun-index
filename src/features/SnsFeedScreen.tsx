@@ -17,7 +17,7 @@ export function SnsFeedScreen() {
       : (query.data ?? []).filter((item) => item.categories.includes(deferredFilter));
 
   return (
-    <PageContainer>
+    <PageContainer width="feed">
       <ScreenHeader title="SNS 피드" />
 
       <Section

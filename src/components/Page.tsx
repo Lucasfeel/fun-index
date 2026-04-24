@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 interface PageContainerProps {
   children: ReactNode;
   emphasis?: 'default' | 'hero';
+  width?: 'default' | 'feed';
 }
 
 interface ScreenHeaderProps {
@@ -34,9 +35,9 @@ interface NoticeStripProps {
   description: string;
 }
 
-export function PageContainer({ children, emphasis = 'default' }: PageContainerProps) {
+export function PageContainer({ children, emphasis = 'default', width = 'default' }: PageContainerProps) {
   return (
-    <main className={clsx('page', emphasis === 'hero' && 'page--hero')}>
+    <main className={clsx('page', emphasis === 'hero' && 'page--hero', width === 'feed' && 'page--feed')}>
       <div className="page__content">{children}</div>
     </main>
   );

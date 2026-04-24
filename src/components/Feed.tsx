@@ -70,15 +70,32 @@ function polarToCartesian(centerX: number, centerY: number, radius: number, angl
   };
 }
 
-function describeArc(centerX: number, centerY: number, radius: number, startAngle: number, endAngle: number) {
-  const start = polarToCartesian(centerX, centerY, radius, endAngle);
-  const end = polarToCartesian(centerX, centerY, radius, startAngle);
-
-  return `M ${start.x} ${start.y} A ${radius} ${radius} 0 0 0 ${end.x} ${end.y}`;
-}
-
 function describeHalfDome(centerX: number, centerY: number, radius: number) {
   return `M ${centerX - radius} ${centerY} A ${radius} ${radius} 0 0 1 ${centerX + radius} ${centerY} Z`;
+}
+
+function describeGaugeSegment(
+  centerX: number,
+  centerY: number,
+  outerRadius: number,
+  innerRadius: number,
+  startAngle: number,
+  endAngle: number,
+) {
+  const steps = 14;
+  const outerPoints = Array.from({ length: steps + 1 }, (_, index) =>
+    polarToCartesian(centerX, centerY, outerRadius, startAngle + ((endAngle - startAngle) * index) / steps),
+  );
+  const innerPoints = Array.from({ length: steps + 1 }, (_, index) =>
+    polarToCartesian(centerX, centerY, innerRadius, endAngle - ((endAngle - startAngle) * index) / steps),
+  );
+  const [firstPoint, ...restPoints] = [...outerPoints, ...innerPoints];
+
+  return [
+    `M ${firstPoint!.x} ${firstPoint!.y}`,
+    ...restPoints.map((point) => `L ${point.x} ${point.y}`),
+    'Z',
+  ].join(' ');
 }
 
 function FreshnessBadge({
@@ -128,13 +145,17 @@ function DeltaPill({ delta }: { delta: number }) {
 function SignalGauge({ item }: { item: SignalItem }) {
   const score = clampScore(item.score);
   const band = getGaugeBand(item);
-  const cx = 180;
-  const cy = 174;
-  const radius = 136;
-  const baseRadius = 46;
+  const cx = 460;
+  const cy = 500;
+  const outerRadius = 420;
+  const innerRadius = 280;
+  const labelRadius = 350;
+  const tickRadius = 258;
+  const tickLabelRadius = 226;
+  const centerRadius = 96;
   const needleAngle = -90 + score * 1.8;
-  const needleEnd = polarToCartesian(cx, cy, 108, needleAngle);
-  const segmentGap = 3;
+  const needleEnd = polarToCartesian(cx, cy, 304, needleAngle);
+  const segmentGap = 1.6;
   const segmentSweep = (180 - segmentGap * (gaugeBands.length - 1)) / gaugeBands.length;
   const activeIndex = score === 100 ? gaugeBands.length - 1 : Math.floor(score / 20);
   const tickValues = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
@@ -142,31 +163,28 @@ function SignalGauge({ item }: { item: SignalItem }) {
 
   return (
     <div className="signal-gauge" aria-hidden="true">
-      <svg viewBox="0 0 360 232" className="signal-gauge__svg">
+      <svg viewBox="0 0 920 560" className="signal-gauge__svg">
         {gaugeBands.map((segment, index) => {
           const startAngle = -90 + index * (segmentSweep + segmentGap);
           const endAngle = startAngle + segmentSweep;
           const isActive = index === Math.min(activeIndex, gaugeBands.length - 1);
           const labelAngle = startAngle + segmentSweep / 2;
-          const labelPoint = polarToCartesian(cx, cy, 126, labelAngle);
+          const labelPoint = polarToCartesian(cx, cy, labelRadius, labelAngle);
+          const labelRotation = labelAngle * 0.88;
 
           return (
             <g key={segment.color}>
               <path
-                d={describeArc(cx, cy, radius, startAngle, endAngle)}
-                fill="none"
-                stroke={segment.color}
-                strokeWidth="48"
-                strokeLinecap="butt"
-                strokeOpacity={isActive ? 0.34 : 0.08}
+                d={describeGaugeSegment(cx, cy, outerRadius, innerRadius, startAngle, endAngle)}
+                fill={isActive ? segment.color : '#F2F2F2'}
+                fillOpacity={isActive ? 0.32 : 0.72}
               />
               {isActive ? (
                 <path
-                  d={describeArc(cx, cy, radius, startAngle, endAngle)}
-                  fill="none"
+                  d={describeGaugeSegment(cx, cy, outerRadius, innerRadius, startAngle, endAngle)}
+                  fill="transparent"
                   stroke={segment.color}
-                  strokeWidth="2"
-                  strokeLinecap="butt"
+                  strokeWidth="5"
                   strokeOpacity="0.72"
                 />
               ) : null}
@@ -175,22 +193,30 @@ function SignalGauge({ item }: { item: SignalItem }) {
                 y={labelPoint.y}
                 textAnchor="middle"
                 dominantBaseline="middle"
-                className="signal-gauge__arc-label"
-                transform={`rotate(${labelAngle * 0.62} ${labelPoint.x} ${labelPoint.y})`}
+                className={clsx('signal-gauge__arc-label', isActive && 'signal-gauge__arc-label--active')}
+                transform={`rotate(${labelRotation} ${labelPoint.x} ${labelPoint.y})`}
               >
-                {gaugeArcLabels[index]}
+                {gaugeArcLabels[index]!.split(' ').map((word, wordIndex, words) => (
+                  <tspan
+                    key={word}
+                    x={labelPoint.x}
+                    dy={words.length === 1 ? 0 : wordIndex === 0 ? -18 : 36}
+                  >
+                    {word}
+                  </tspan>
+                ))}
               </text>
             </g>
           );
         })}
 
         {tickValues.map((value) => {
-          const tickPoint = polarToCartesian(cx, cy, 92, -90 + value * 1.8);
-          return <circle key={value} cx={tickPoint.x} cy={tickPoint.y} r="2.2" fill="#8B95A1" opacity="0.78" />;
+          const tickPoint = polarToCartesian(cx, cy, tickRadius, -90 + value * 1.8);
+          return <circle key={value} cx={tickPoint.x} cy={tickPoint.y} r="5" fill="#8B95A1" opacity="0.72" />;
         })}
 
         {tickLabels.map((value) => {
-          const labelPoint = polarToCartesian(cx, cy, 76, -90 + value * 1.8);
+          const labelPoint = polarToCartesian(cx, cy, tickLabelRadius, -90 + value * 1.8);
           return (
             <text
               key={value}
@@ -205,22 +231,22 @@ function SignalGauge({ item }: { item: SignalItem }) {
           );
         })}
 
-        <path d={describeHalfDome(cx, cy, baseRadius)} fill={band.color} fillOpacity="0.12" />
-
         <line
           x1={cx}
           y1={cy}
           x2={needleEnd.x}
           y2={needleEnd.y}
           stroke="#191F28"
-          strokeWidth="6"
+          strokeWidth="16"
           strokeLinecap="round"
         />
-        <circle cx={cx} cy={cy} r="4.5" fill="#FFFFFF" stroke="#191F28" strokeWidth="1.8" />
+        <path d={describeHalfDome(cx, cy, centerRadius)} fill="#FFFFFF" />
+        <path d={describeHalfDome(cx, cy, centerRadius)} fill={band.color} fillOpacity="0.05" />
+        <circle cx={cx} cy={cy} r="8" fill="#FFFFFF" stroke="#191F28" strokeWidth="4" />
 
         <text
           x={cx}
-          y={cy + 34}
+          y={cy - 34}
           textAnchor="middle"
           dominantBaseline="middle"
           className="signal-gauge__score"

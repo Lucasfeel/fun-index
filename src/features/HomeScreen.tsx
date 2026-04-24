@@ -7,7 +7,7 @@ export function HomeScreen() {
   const items = query.data ?? [];
 
   return (
-    <PageContainer emphasis="hero">
+    <PageContainer emphasis="hero" width="feed">
       {query.isLoading ? <FeedSkeleton count={5} /> : null}
 
       {!query.isLoading && query.isError && items.length === 0 ? (

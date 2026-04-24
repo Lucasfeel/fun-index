@@ -17,7 +17,7 @@ export function PentagonScreen() {
       : (query.data ?? []).filter((item) => item.indexType === deferredFilter);
 
   return (
-    <PageContainer>
+    <PageContainer width="feed">
       <ScreenHeader title="펜타곤" />
 
       <Section
