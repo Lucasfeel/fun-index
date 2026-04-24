@@ -98,6 +98,24 @@ function describeGaugeSegment(
   ].join(' ');
 }
 
+function describeNeedle(centerX: number, centerY: number, angleInDegrees: number, length: number) {
+  const tip = polarToCartesian(centerX, centerY, length, angleInDegrees);
+  const perpendicular = ((angleInDegrees + 90 - 90) * Math.PI) / 180.0;
+  const baseHalfWidth = 15;
+  const tipHalfWidth = 3.5;
+  const dx = Math.cos(perpendicular);
+  const dy = Math.sin(perpendicular);
+
+  const points = [
+    { x: centerX + dx * baseHalfWidth, y: centerY + dy * baseHalfWidth },
+    { x: tip.x + dx * tipHalfWidth, y: tip.y + dy * tipHalfWidth },
+    { x: tip.x - dx * tipHalfWidth, y: tip.y - dy * tipHalfWidth },
+    { x: centerX - dx * baseHalfWidth, y: centerY - dy * baseHalfWidth },
+  ];
+
+  return points.map((point) => `${point.x},${point.y}`).join(' ');
+}
+
 function FreshnessBadge({
   updatedAt,
   cadenceHours,
@@ -154,7 +172,6 @@ function SignalGauge({ item }: { item: SignalItem }) {
   const tickLabelRadius = 226;
   const centerRadius = 96;
   const needleAngle = -90 + score * 1.8;
-  const needleEnd = polarToCartesian(cx, cy, 304, needleAngle);
   const segmentGap = 1.6;
   const segmentSweep = (180 - segmentGap * (gaugeBands.length - 1)) / gaugeBands.length;
   const activeIndex = score === 100 ? gaugeBands.length - 1 : Math.floor(score / 20);
@@ -163,7 +180,7 @@ function SignalGauge({ item }: { item: SignalItem }) {
 
   return (
     <div className="signal-gauge" aria-hidden="true">
-      <svg viewBox="0 0 920 560" className="signal-gauge__svg">
+      <svg viewBox="0 0 920 520" className="signal-gauge__svg">
         {gaugeBands.map((segment, index) => {
           const startAngle = -90 + index * (segmentSweep + segmentGap);
           const endAngle = startAngle + segmentSweep;
@@ -231,18 +248,9 @@ function SignalGauge({ item }: { item: SignalItem }) {
           );
         })}
 
-        <line
-          x1={cx}
-          y1={cy}
-          x2={needleEnd.x}
-          y2={needleEnd.y}
-          stroke="#191F28"
-          strokeWidth="16"
-          strokeLinecap="round"
-        />
-        <path d={describeHalfDome(cx, cy, centerRadius)} fill="#FFFFFF" />
+        <polygon points={describeNeedle(cx, cy, needleAngle, 342)} fill="#191F28" />
+        <circle cx={cx} cy={cy} r={centerRadius} fill="#FFFFFF" />
         <path d={describeHalfDome(cx, cy, centerRadius)} fill={band.color} fillOpacity="0.05" />
-        <circle cx={cx} cy={cy} r="8" fill="#FFFFFF" stroke="#191F28" strokeWidth="4" />
 
         <text
           x={cx}
@@ -305,17 +313,17 @@ export function FeedCard({ item }: { item: SignalItem }) {
         <h2 className="feed-card__title">{item.title}</h2>
 
         <div className="feed-card__gauge-row">
-          <SignalGauge item={item} />
-
-          <div className="feed-card__side">
-            <div className="feed-card__insight">
+          <div className="feed-card__gauge-stack">
+            <SignalGauge item={item} />
+            <div className="feed-card__insight" aria-label="현재 지표 상태">
               <strong className="feed-card__band" style={{ color: band.color }}>
                 {band.label}
               </strong>
               <p className="feed-card__statement">{getFeedStatement(item)}</p>
             </div>
-            <HistoryList item={item} />
           </div>
+
+          <HistoryList item={item} />
         </div>
       </Link>
     </article>

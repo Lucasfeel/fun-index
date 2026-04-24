@@ -287,8 +287,8 @@ a {
 .feed-card__link {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 20px 24px 28px;
+  gap: 10px;
+  padding: 22px 24px 26px;
 }
 
 .detail-hero__topline,
@@ -333,16 +333,22 @@ a {
 
 .feed-card__gauge-row {
   display: grid;
-  grid-template-columns: minmax(0, 1.48fr) minmax(220px, 0.72fr);
-  gap: 20px 28px;
+  grid-template-columns: minmax(0, 1.7fr) minmax(236px, 0.62fr);
+  gap: 18px 30px;
   align-items: center;
+}
+
+.feed-card__gauge-stack {
+  display: grid;
+  min-width: 0;
+  gap: 10px;
 }
 
 .signal-gauge {
   justify-self: center;
-  width: min(100%, 680px);
+  width: min(100%, 700px);
   max-width: 100%;
-  margin: -8px 0 -2px;
+  margin: -10px 0 0;
 }
 
 .signal-gauge__svg {
@@ -354,7 +360,7 @@ a {
 
 .signal-gauge__score {
   fill: var(--text-primary);
-  font-size: 72px;
+  font-size: 68px;
   font-weight: 800;
   letter-spacing: 0;
 }
@@ -379,30 +385,23 @@ a {
   pointer-events: none;
 }
 
-.feed-card__side {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  justify-content: center;
-  gap: 22px;
-}
-
 .feed-card__insight {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   min-width: 0;
+  padding-left: 2px;
 }
 
 .feed-card__band {
-  font-size: 22px;
+  font-size: 21px;
   line-height: 1;
   letter-spacing: -0.03em;
 }
 
 .feed-card__statement {
   margin: 0;
-  font-size: 18px;
+  font-size: 17px;
   line-height: 1.35;
   letter-spacing: -0.02em;
   color: var(--text-primary);
@@ -411,21 +410,36 @@ a {
 .feed-card__history {
   display: grid;
   gap: 0;
+  align-self: center;
 }
 
 .history-row {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
   min-height: 58px;
+}
+
+.history-row::before {
+  content: '';
+  position: absolute;
+  right: 42px;
+  left: 0;
+  top: 50%;
   border-top: 1px dashed var(--border-soft);
 }
 
 .history-row__copy {
+  position: relative;
+  z-index: 1;
   min-width: 0;
   display: grid;
   gap: 1px;
+  background: var(--surface-strong);
+  padding-right: 10px;
+  justify-self: start;
 }
 
 .history-row__label {
@@ -444,6 +458,8 @@ a {
 }
 
 .history-row__score {
+  position: relative;
+  z-index: 1;
   width: 34px;
   height: 34px;
   display: inline-grid;
@@ -998,7 +1014,7 @@ a {
 
   .feed-card__link {
     gap: 12px;
-    padding: 12px 22px 24px;
+    padding: 14px 18px 24px;
   }
 
   .feed-card__header {
@@ -1014,11 +1030,11 @@ a {
   .signal-gauge {
     width: 100%;
     max-width: 100%;
-    margin: -2px 0 -8px;
+    margin: -4px 0 0;
   }
 
-  .feed-card__side {
-    gap: 16px;
+  .feed-card__gauge-stack {
+    gap: 8px;
   }
 
   .detail-hero__topline,
