@@ -34,16 +34,44 @@ function normalizeConfidence(value: unknown) {
   return Math.max(0, Math.min(1, numeric));
 }
 
+function inferContentType(feedCardCode: unknown) {
+  const code = stringValue(feedCardCode).toLowerCase();
+
+  if (code.includes('pizza-index')) {
+    return { indexType: 'pizza' };
+  }
+
+  if (code.includes('gay-bar-index')) {
+    return { indexType: 'gay-bar' };
+  }
+
+  if (code.includes('us-stock-fear-greed')) {
+    return { indicatorType: 'us-stock-fear-greed' };
+  }
+
+  if (code.includes('crypto-fear-greed')) {
+    return { indicatorType: 'crypto-fear-greed' };
+  }
+
+  if (code.includes('kr-stock-fear-greed')) {
+    return { indicatorType: 'kr-stock-fear-greed' };
+  }
+
+  return {};
+}
+
 function buildIndicatorContent(
   layoutRow: Record<string, unknown>,
   stateRow: Record<string, unknown>,
 ) {
   const summary = asRecord(stateRow.summary);
   const score = numberValue(summary.score ?? summary.valueNumeric ?? stateRow.current_value, 0);
+  const observedAt = stringValue(stateRow.observed_at, stringValue(stateRow.published_at, new Date().toISOString()));
   const summaryText = stringValue(
     summary.summary ?? summary.description,
     stringValue(layoutRow.description_template, ''),
   );
+  const contentType = inferContentType(layoutRow.feed_card_code);
 
   return {
     title: stringValue(summary.title, stringValue(layoutRow.title, stringValue(layoutRow.feed_card_code, 'Indicator'))),
@@ -62,7 +90,9 @@ function buildIndicatorContent(
     cadenceHours: numberValue(summary.cadenceHours, 1),
     sampleSize: numberValue(summary.sampleSize, 0),
     coverageLabel: stringValue(summary.coverageLabel, 'Aggregate sample'),
-    observedAt: stateRow.observed_at,
+    updatedAt: observedAt,
+    observedAt,
+    ...contentType,
     sourceRunId: stateRow.last_run_id,
     payload: {
       streamId: stateRow.stream_id,

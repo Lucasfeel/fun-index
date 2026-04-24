@@ -104,12 +104,16 @@ function inferPentagonType(slug: string): PentagonIndexType {
 }
 
 function inferPsychologyType(slug: string): PsychologyIndicatorType {
-  if (slug.includes('us-stock') || slug.includes('fear') || slug.includes('greed')) {
-    return 'us-stock-fear-greed';
-  }
-
   if (slug.includes('crypto') || slug.includes('coin') || slug.includes('position')) {
     return 'crypto-fear-greed';
+  }
+
+  if (slug.includes('kr-stock') || slug.includes('korean') || slug.includes('breadth')) {
+    return 'kr-stock-fear-greed';
+  }
+
+  if (slug.includes('us-stock') || slug.includes('fear') || slug.includes('greed')) {
+    return 'us-stock-fear-greed';
   }
 
   return 'kr-stock-fear-greed';

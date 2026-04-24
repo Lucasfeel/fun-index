@@ -152,6 +152,8 @@ function toIndicatorRowFromCard(tab: 'pentagon' | 'psychology', card: PublicFeed
     cadence_hours: Number(content.cadenceHours ?? 1),
     sample_size: Number(content.sampleSize ?? 0),
     coverage_label: typeof content.coverageLabel === 'string' ? content.coverageLabel : 'Aggregate sample',
+    index_type: typeof content.indexType === 'string' ? content.indexType : undefined,
+    indicator_type: typeof content.indicatorType === 'string' ? content.indicatorType : undefined,
   };
 }
 

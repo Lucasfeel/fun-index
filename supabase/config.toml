@@ -9,6 +9,9 @@ verify_jwt = false
 [functions.public-feed-psychology]
 verify_jwt = false
 
+[functions.public-feed-psychology-v2]
+verify_jwt = false
+
 [functions.public-feed-sns]
 verify_jwt = false
 
